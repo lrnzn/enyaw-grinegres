@@ -1,0 +1,12 @@
+Options -Indexes
+DirectoryIndex index.php
+
+# On a live site with HTTPS, uncomment these two lines to force secure connections:
+# RewriteEngine On
+# RewriteCond %{HTTPS} off
+# RewriteRule ^(.*)$ https://%{HTTP_HOST}/$1 [L,R=301]
+
+# Never serve these directly
+<FilesMatch "\.(sql|md|ini|example\.php)$">
+  Require all denied
+</FilesMatch>
