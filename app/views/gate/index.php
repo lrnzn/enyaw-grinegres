@@ -23,6 +23,8 @@
       <button type="button" class="btn btn-ghost btn-lg" id="btn-camera"><?= icon('camera', 18) ?><span class="lbl">Use camera</span></button>
     </div>
   </form>
+  <div id="camera-hint" class="cam-hint" hidden></div>
+  <div id="camera-panel" class="cam-panel" role="alert" tabindex="-1" hidden></div>
   <div id="reader" hidden></div>
   <p class="muted small" style="margin-top:14px">A USB scanner works like a keyboard. Click the box and scan.</p>
 </section>

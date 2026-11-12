@@ -2,9 +2,19 @@
 // Front controller: every request enters here.
 define('ROOT', __DIR__);
 
+// Settings in config.local.php override config.php. Named settings are merged one by one,
+// but a LIST (such as approver_roles) is replaced as a whole, so it can be made shorter.
+function merge_config(array $base, array $over)
+{
+    foreach ($over as $k => $v) {
+        $isList = is_array($v) && array_keys($v) === range(0, count($v) - 1);
+        $base[$k] = (is_array($v) && !$isList && isset($base[$k]) && is_array($base[$k])) ? merge_config($base[$k], $v) : $v;
+    }
+    return $base;
+}
 $config = require ROOT . '/config/config.php';
 if (is_file(ROOT . '/config/config.local.php')) {
-    $config = array_replace_recursive($config, require ROOT . '/config/config.local.php');
+    $config = merge_config($config, require ROOT . '/config/config.local.php');
 }
 $GLOBALS['config'] = $config;
 date_default_timezone_set($config['timezone']);

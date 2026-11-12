@@ -6,7 +6,7 @@
  */
 return [
     'app_name'    => 'SGVMS',
-    'school_name' => 'Sample Elementary School',
+    'school_name' => 'Greenacres Elementary Christian School',
     'timezone'    => 'Asia/Manila',
 
     // true  = demo mode: sample-data banner, demo login hints, "Reset demo logs" button.
@@ -23,6 +23,26 @@ return [
         'user'    => 'root',   // XAMPP default. Use a dedicated limited user online.
         'pass'    => '',       // XAMPP default is empty. Use a strong password online.
         'charset' => 'utf8mb4',
+    ],
+
+    // Messages to parents when their child arrives and when their child is picked up.
+    'notifications' => [
+        'enabled' => true,
+        // 'log'       = simulate: messages are listed on the Messages page but NOTHING is sent (good for demos)
+        // 'semaphore' = send real SMS through semaphore.co (needs an account and an API key; each SMS costs a credit)
+        'driver'  => 'log',
+        'semaphore' => [
+            'api_key'     => '',                      // put the real key in config.local.php, never here
+            'sender_name' => '',                      // optional approved sender name; empty = Semaphore's default
+            'url'         => 'https://api.semaphore.co/api/v4/messages',
+        ],
+        'timeout_seconds' => 4,                       // the gate never waits longer than this for the SMS service
+    ],
+
+    // Pickup by someone who is not a registered guardian.
+    'substitute_pickup' => [
+        'require'        => 'either',                 // 'either' = letter OR phone call (as the school's process says), 'both' = stricter
+        'approver_roles' => ['admin', 'teacher'],     // who may approve it (with their own username and password)
     ],
 
     // Sign-in protection: lock after this many failed tries within the window.

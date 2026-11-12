@@ -22,14 +22,24 @@
       <?php endif; ?>
       <a href="<?= url('gate') ?>"     class="<?= $active === 'gate' ? 'on' : '' ?>"><?= icon('gate') ?>Gate station</a>
       <a href="<?= url('students') ?>" class="<?= $active === 'students' ? 'on' : '' ?>"><?= icon('students') ?>Students</a>
+      <?php if (is_admin() || is_teacher()): ?>
+        <a href="<?= url('attendance') ?>" class="<?= $active === 'attendance' ? 'on' : '' ?>"><?= icon('calendar') ?>Attendance</a>
+      <?php endif; ?>
       <a href="<?= url('logs') ?>"     class="<?= $active === 'logs' ? 'on' : '' ?>"><?= icon('logs') ?>Activity logs</a>
+      <?php if (is_admin()): ?>
+        <div class="nav-label">Administration</div>
+        <a href="<?= url('sections') ?>" class="<?= $active === 'sections' ? 'on' : '' ?>"><?= icon('layers') ?>Sections</a>
+        <a href="<?= url('notifications') ?>" class="<?= $active === 'messages' ? 'on' : '' ?>"><?= icon('phone') ?>Messages</a>
+        <a href="<?= url('staff') ?>"    class="<?= $active === 'staff' ? 'on' : '' ?>"><?= icon('users') ?>Staff accounts</a>
+        <a href="<?= url('logs/audit') ?>" class="<?= $active === 'audit' ? 'on' : '' ?>"><?= icon('clock') ?>Audit trail</a>
+      <?php endif; ?>
     </nav>
     <div class="side-user">
       <div class="clock" data-clock></div>
       <div class="date" data-date></div>
       <div class="who">
         <div class="av"><?= e(strtoupper(substr($user['name'], 0, 1))) ?></div>
-        <div><b><?= e($user['name']) ?></b><small><?= $user['role'] === 'admin' ? 'Administrator' : 'Gate staff' ?></small></div>
+        <div><b><?= e($user['name']) ?></b><small><?= e(role_label($user['role'])) ?></small></div>
       </div>
       <form method="post" action="<?= url('auth/logout') ?>"><?= csrf_field() ?>
         <button class="btn btn-ghost btn-sm"><?= icon('logout', 16) ?>Sign out</button></form>

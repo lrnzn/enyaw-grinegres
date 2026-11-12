@@ -15,7 +15,12 @@ function base_path() {
     return $b;
 }
 function url($path = '') { return base_path() . '/index.php?url=' . ltrim($path, '/'); }
-function asset($path)    { return base_path() . '/' . ltrim($path, '/'); }
+/** Link to a static file. The file's change time is added so browsers load a new version after an update. */
+function asset($path)
+{
+    $file = ROOT . '/' . ltrim($path, '/');
+    return base_path() . '/' . ltrim($path, '/') . (is_file($file) ? '?v=' . filemtime($file) : '');
+}
 
 function current_user() { return $_SESSION['user'] ?? null; }
 function is_admin()     { return (current_user()['role'] ?? '') === 'admin'; }
@@ -100,6 +105,8 @@ function icon($name, $size = 20)
         'clock'     => '<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/>',
         'trash'     => '<path d="M4.5 7h15M9.5 7V4.5h5V7M6.5 7l1 13h9l1-13M10 11v5M14 11v5"/>',
         'letter'    => '<rect x="3.5" y="5.5" width="17" height="13" rx="2"/><path d="m4 7 8 6 8-6"/>',
+        'calendar'  => '<rect x="3.5" y="5" width="17" height="15.5" rx="2"/><path d="M3.5 10h17M8 3v4M16 3v4"/><path d="m9.5 15 2 2 3.5-3.5"/>',
+        'layers'    => '<path d="M12 4 3 8.5 12 13l9-4.5L12 4Z"/><path d="m3 12.5 9 4.5 9-4.5M3 16.5l9 4.5 9-4.5"/>',
         'users'     => '<circle cx="9" cy="8.5" r="3.5"/><path d="M2.5 20c0-3.6 2.9-6 6.5-6s6.5 2.4 6.5 6M16 5.3a3.5 3.5 0 0 1 0 6.4M18.5 14.3c1.8.8 3 2.7 3 5.7"/>',
     ];
     $p = $paths[$name] ?? '';
@@ -111,4 +118,22 @@ function greeting()
 {
     $h = (int)date('G');
     return $h < 12 ? 'Good morning' : ($h < 18 ? 'Good afternoon' : 'Good evening');
+}
+
+/** "First Last Suffix" from a row that has first_name / last_name / name_suffix. */
+function compose_name($r)
+{
+    return trim(preg_replace('/\s+/', ' ', ($r['first_name'] ?? '') . ' ' . ($r['last_name'] ?? '') . ' ' . ($r['name_suffix'] ?? '')));
+}
+function role_label($role)
+{
+    return ['admin' => 'Administrator', 'teacher' => 'Teacher', 'gate_staff' => 'Gate staff'][$role] ?? $role;
+}
+function is_teacher() { return (current_user()['role'] ?? '') === 'teacher'; }
+function current_role() { return current_user()['role'] ?? ''; }
+
+/** Delete a stored upload (photo or letter) by file name. Safe against odd input. */
+function remove_upload($name)
+{
+    if ($name && preg_match('/^[a-f0-9]{24}\.(jpg|png|webp|pdf)$/', $name)) @unlink(ROOT . '/uploads/' . $name);
 }

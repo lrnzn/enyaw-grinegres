@@ -52,8 +52,8 @@ $pct      = $present > 0 ? round($count['released'] / $present * 100) : 0;
       <?php foreach ($recent as $r): ?>
         <li>
           <span class="badge <?= action_class($r['action']) ?>"><?= e(action_label($r['action'])) ?></span>
-          <div><strong><?= e(trim(($r['first_name'] ?? '') . ' ' . ($r['last_name'] ?? '')) ?: '(removed student)') ?></strong>
-            <?php if ($r['guardian_name'] || $r['person_name']): ?> to <?= e($r['guardian_name'] ?: $r['person_name']) ?><?php endif; ?>
+          <div><strong><?= e($r['student_name']) ?></strong>
+            <?php if ($r['released_to_name']): ?> to <?= e($r['released_to_name']) ?><?php endif; ?>
             <small><?= fmt_dt($r['logged_at']) ?></small></div>
         </li>
       <?php endforeach; ?>

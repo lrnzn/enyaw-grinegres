@@ -22,9 +22,9 @@
       <tr>
         <td><img class="thumb" src="<?= e(avatar($s['full_name'], $s['photo'])) ?>" alt=""></td>
         <td><a href="<?= url('students/show/' . $s['id']) ?>"><strong><?= e($s['full_name']) ?></strong></a></td>
-        <td><?= e($s['grade']) ?>, <?= e($s['section']) ?></td>
+        <td><?= $s['section'] ? e($s['grade']) . ', ' . e($s['section']) : '<span class="muted">No section</span>' ?></td>
         <td><?= e($s['lrn'] ?: '—') ?></td>
-        <td><?= state_badge($st) ?></td>
+        <td><?= $s['status'] === 'enrolled' ? state_badge($st) : '<span class="badge b-gray">' . e(ucfirst($s['status'])) . '</span>' ?></td>
         <td class="right"><a class="btn btn-ghost btn-sm" href="<?= url('students/show/' . $s['id']) ?>">Open</a></td>
       </tr>
     <?php endforeach; ?>

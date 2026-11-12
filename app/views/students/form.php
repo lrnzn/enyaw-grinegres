@@ -12,17 +12,35 @@
       action="<?= $isEdit ? url('students/update/' . $s['id']) : url('students/store') ?>">
   <?= csrf_field() ?>
   <label>First name * <input name="first_name" value="<?= e($s['first_name'] ?? '') ?>" required></label>
+  <label>Middle name <input name="middle_name" value="<?= e($s['middle_name'] ?? '') ?>"></label>
   <label>Last name * <input name="last_name" value="<?= e($s['last_name'] ?? '') ?>" required></label>
-  <label>Grade level *
-    <select name="grade" required>
-      <?php for ($g = 1; $g <= 6; $g++): $v = "Grade $g"; ?>
-        <option <?= ($s['grade'] ?? '') === $v ? 'selected' : '' ?>><?= $v ?></option>
-      <?php endfor; ?>
+  <label>Suffix (Jr., III…) <input name="name_suffix" value="<?= e($s['name_suffix'] ?? '') ?>" maxlength="10"></label>
+  <label>Section
+    <select name="section_id">
+      <option value="">No section yet</option>
+      <?php foreach ($sections as $sec): ?>
+        <option value="<?= (int)$sec['id'] ?>" <?= (string)($s['section_id'] ?? '') === (string)$sec['id'] ? 'selected' : '' ?>><?= e($sec['label']) ?> (<?= e($sec['school_year']) ?>)</option>
+      <?php endforeach; ?>
     </select>
   </label>
-  <label>Section * <input name="section" value="<?= e($s['section'] ?? '') ?>" required></label>
-  <label>Date of birth <input type="date" name="birthdate" value="<?= e($s['birthdate'] ?? '') ?>"></label>
+  <label>Gender
+    <select name="gender">
+      <option value="">Not stated</option>
+      <option value="female" <?= ($s['gender'] ?? '') === 'female' ? 'selected' : '' ?>>Female</option>
+      <option value="male"   <?= ($s['gender'] ?? '') === 'male' ? 'selected' : '' ?>>Male</option>
+    </select>
+  </label>
+  <label>Date of birth <input type="date" name="date_of_birth" value="<?= e($s['date_of_birth'] ?? '') ?>"></label>
   <label>LRN (optional) <input name="lrn" value="<?= e($s['lrn'] ?? '') ?>" inputmode="numeric"></label>
+  <?php if ($isEdit): ?>
+  <label>Status
+    <select name="status">
+      <?php foreach (['enrolled' => 'Enrolled', 'withdrawn' => 'Withdrawn', 'graduated' => 'Graduated'] as $k => $v): ?>
+        <option value="<?= $k ?>" <?= ($s['status'] ?? '') === $k ? 'selected' : '' ?>><?= $v ?></option>
+      <?php endforeach; ?>
+    </select>
+  </label>
+  <?php endif; ?>
   <label class="span2">Address <input name="address" value="<?= e($s['address'] ?? '') ?>"></label>
   <label class="span2">Student photo (JPG, PNG or WEBP, up to 5 MB)
     <input type="file" name="photo" accept="image/jpeg,image/png,image/webp" data-preview data-max-mb="5"

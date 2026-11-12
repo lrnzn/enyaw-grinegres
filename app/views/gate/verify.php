@@ -70,22 +70,56 @@
 
     <details class="card" <?= !$guardians ? 'open' : '' ?>>
       <summary><?= icon('users', 22) ?>The person at the gate is not on this list</summary>
-      <div class="two-col">
-        <form method="post" class="stack" action="<?= url('gate/deny/' . $s['id']) ?>">
-          <h4>Deny the release</h4>
+      <div class="stack">
+        <form method="post" class="inline-form" action="<?= url('gate/deny/' . $s['id']) ?>">
           <?= csrf_field() ?>
           <label>Name of the person, if known <input name="person_name"></label>
           <label>Reason <input name="note" placeholder="Not registered. Asked to bring an authorization letter."></label>
           <button class="btn btn-danger"><?= icon('x', 18) ?>Deny and record</button>
         </form>
-        <form method="post" class="stack" action="<?= url('gate/override/' . $s['id']) ?>">
-          <h4>They have an authorization letter</h4>
+
+        <form method="post" enctype="multipart/form-data" class="stack sub-form" action="<?= url('gate/override/' . $s['id']) ?>">
+          <h4>Substitute pickup</h4>
+          <div class="notice-box">
+            <?php if (config('substitute_pickup.require') === 'both'): ?>
+              This school needs <b>both</b> a phone call to a registered guardian and an authorization letter, then a teacher's or administrator's approval.
+            <?php else: ?>
+              Confirm it with a <b>phone call to a registered guardian</b> or an <b>authorization letter</b> (or both), then get a teacher's or administrator's approval.
+            <?php endif; ?>
+          </div>
           <?= csrf_field() ?>
-          <label>Name of the person * <input name="person_name" required></label>
-          <label>Letter details * <input name="note" placeholder="Signed by mother, dated today" required></label>
-          <label>Supervisor password * <input type="password" name="admin_password" required autocomplete="off">
-            <?php if (demo()): ?><small class="muted">Demo password: admin123</small><?php endif; ?></label>
-          <button class="btn btn-amber"><?= icon('letter', 18) ?>Release with letter</button>
+          <div class="form-grid">
+            <label>Their first name * <input name="first_name" required></label>
+            <label>Their last name * <input name="last_name" required></label>
+            <label>Their contact number * <input name="contact" required></label>
+            <label>Relationship to <?= e($first) ?> * <input name="relationship" placeholder="Aunt, neighbor, driver…" required></label>
+            <label>Registered guardian you phoned
+              <select name="called_guardian_id">
+                <option value="">I did not phone anyone</option>
+                <?php foreach ($guardians as $g): if (!$g['is_authorized']) continue; ?>
+                  <option value="<?= (int)$g['id'] ?>"><?= e($g['full_name']) ?> (<?= e($g['relationship']) ?>)</option>
+                <?php endforeach; ?>
+              </select>
+            </label>
+            <label>What happened on the call?
+              <select name="phone_call_status">
+                <option value="not_called">Not called</option>
+                <option value="reached">The guardian confirmed the pickup</option>
+                <option value="no_answer">No answer</option>
+                <option value="declined">The guardian did not approve</option>
+              </select>
+            </label>
+            <label class="span2">Photo or scan of the authorization letter (JPG, PNG, WEBP or PDF, up to 5 MB)
+              <input type="file" name="letter" accept="image/jpeg,image/png,image/webp,application/pdf" data-preview data-max-mb="5">
+            </label>
+            <label class="span2">Photo of the person (optional)
+              <input type="file" name="collector_photo" accept="image/jpeg,image/png,image/webp" data-preview data-max-mb="5">
+            </label>
+            <label>Approving teacher or administrator: username * <input name="approver_username" required autocomplete="off"></label>
+            <label>Their password * <input type="password" name="approver_password" required autocomplete="off">
+              <?php if (demo()): ?><small class="muted">Demo: admin / admin123 or teacher / teacher123</small><?php endif; ?></label>
+          </div>
+          <div><button class="btn btn-amber btn-lg"><?= icon('letter', 20) ?>Release to this person</button></div>
         </form>
       </div>
     </details>

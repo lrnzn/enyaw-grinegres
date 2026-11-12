@@ -24,6 +24,7 @@
     <div class="demo-box">
       <strong>Demo accounts</strong>
       <div><code>admin</code> <code>admin123</code> Administrator</div>
+      <div><code>teacher</code> <code>teacher123</code> Teacher</div>
       <div><code>guard</code> <code>guard123</code> Gate staff</div>
     </div>
     <?php endif; ?>

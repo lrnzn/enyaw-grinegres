@@ -4,6 +4,8 @@
 return [
     'school_name' => 'Your School Name',
     'demo_mode'   => false,
+    // To send real SMS instead of simulating:
+    // 'notifications' => ['driver' => 'semaphore', 'semaphore' => ['api_key' => 'YOUR-KEY', 'sender_name' => '']],
     'debug'       => false,
     'db' => [
         'host' => 'localhost',

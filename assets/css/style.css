@@ -42,6 +42,7 @@ small,.small{font-size:12.5px}.block{display:block}.muted{color:var(--muted)}.ce
 .sidebar nav a{display:flex;align-items:center;gap:12px;color:var(--board-text);padding:11px 14px;border-radius:12px;font-weight:500;transition:background .15s}
 .sidebar nav a:hover{background:rgba(255,255,255,.09);text-decoration:none;color:#fff}
 .sidebar nav a.on{background:var(--sky-100);color:var(--board);font-weight:600}
+.nav-label{margin:16px 14px 4px;color:#8FB7A6;font-size:12.5px;font-weight:500}
 .side-user{margin-top:auto;border-top:1px dashed var(--board-line);padding:16px 6px 0}
 .clock{font-size:24px;font-weight:600;line-height:1.1}
 .date{color:var(--board-text);font-size:12.5px;margin-bottom:14px}
@@ -242,3 +243,31 @@ details[open] summary{margin-bottom:16px}
   .sidebar,.proto-bar,.no-print,.alert{display:none!important}.app{display:block}.main{padding:0}body{background:#fff}
   .cards-grid{grid-template-columns:repeat(2,1fr)}.card,.id-card{box-shadow:none}
 }
+
+/* ---------- v2 additions ---------- */
+.inline-form{display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap}.inline-form label{min-width:170px;flex:1}
+.status-select{width:auto;min-width:130px;padding:8px 12px}
+.remarks-input{min-width:200px;padding:8px 12px}
+.letter-link{display:inline-flex;align-items:center;gap:6px;font-weight:500}
+.sub-form{border-top:1px dashed var(--line);padding-top:16px;margin-top:6px}
+.notice-box{background:var(--sky-100);border-radius:var(--r-md);padding:12px 16px;color:var(--sky-800);font-size:13.5px}
+
+/* notifications */
+.msg-box{margin:18px auto 0;max-width:460px;text-align:left;background:var(--sky-50);border:1px solid var(--line);border-radius:var(--r-md);padding:14px 16px}
+.msg-row{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:6px 0;border-bottom:1px dashed var(--line)}
+.msg-row:last-of-type{border-bottom:0}
+.msg-box .mini{margin:10px 0 0;color:var(--muted);font-size:12.5px}
+.sms-bubble{background:var(--sky-100);color:var(--sky-800);border-radius:14px 14px 14px 4px;padding:8px 12px;max-width:520px;font-size:13.5px}
+
+/* camera help */
+.cam-hint{margin:12px 0 0;font-size:13.5px;color:var(--muted)}
+.cam-panel{margin-top:16px;outline:0}
+.cam-card{border-radius:var(--r-md);padding:18px 20px;border:1px solid var(--line);background:var(--sky-50)}
+.cam-card h3{margin:0 0 6px;font-size:17px}
+.cam-card p{margin:.4em 0}
+.cam-card.cam-warn{background:var(--amber-50);border-color:var(--amber-100);color:#4f3303}
+.cam-card.cam-info{background:var(--sky-100);border-color:var(--sky-200);color:var(--sky-800)}
+.cam-steps{margin:10px 0 6px;padding-left:22px;display:flex;flex-direction:column;gap:6px}
+.cam-actions{margin-top:14px}
+.cam-more{margin-top:10px}.cam-more summary{cursor:pointer;font-weight:600}
+.cam-more ul{margin:8px 0 0;padding-left:20px;font-size:13.5px;display:flex;flex-direction:column;gap:4px}

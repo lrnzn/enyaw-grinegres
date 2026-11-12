@@ -19,16 +19,18 @@
 
 <div class="card table-wrap">
   <table>
-    <thead><tr><th>Time</th><th>Student</th><th>Action</th><th>Picked up by</th><th>Note</th><th>Recorded by</th></tr></thead>
+    <thead><tr><th>Time</th><th>Student</th><th>Action</th><th>Picked up by</th><th>Details</th><th>Recorded by</th></tr></thead>
     <tbody>
     <?php foreach ($rows as $r): ?>
       <tr>
         <td><?= fmt_time($r['logged_at']) ?></td>
-        <td><strong><?= e(trim(($r['first_name'] ?? '') . ' ' . ($r['last_name'] ?? '')) ?: '(removed student)') ?></strong>
-            <small class="block muted"><?= e($r['grade'] ?? '') ?> <?= e($r['section'] ?? '') ?></small></td>
+        <td><strong><?= e($r['student_name']) ?></strong>
+            <small class="block muted"><?= e(trim(($r['grade'] ?? '') . ' ' . ($r['section'] ?? ''))) ?></small></td>
         <td><span class="badge <?= action_class($r['action']) ?>"><?= e(action_label($r['action'])) ?></span></td>
-        <td><?= e($r['guardian_name'] ?: ($r['person_name'] ?: '—')) ?></td>
-        <td><?= e($r['note'] ?: '—') ?></td>
+        <td><?= e($r['released_to_name'] ?: '—') ?></td>
+        <td><?= e($r['note'] ?: '—') ?>
+          <?php if ($r['approver_name']): ?><small class="block muted">Approved by <?= e($r['approver_name']) ?></small><?php endif; ?>
+          <?php if ($r['letter_path'] && is_admin()): ?><a class="letter-link" href="<?= url('photo/letter/' . $r['letter_path']) ?>" target="_blank" rel="noopener"><?= icon('letter', 16) ?>View letter</a><?php endif; ?></td>
         <td><?= e($r['staff_name'] ?: '—') ?></td>
       </tr>
     <?php endforeach; ?>
