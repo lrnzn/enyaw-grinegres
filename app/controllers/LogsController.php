@@ -18,6 +18,7 @@ class LogsController extends Controller
             'title' => 'Activity logs', 'active' => 'logs',
             'date' => $date, 'action' => $action,
             'rows' => Log::query(['from' => $date, 'to' => $date, 'action' => $action]),
+            'times' => Log::dailyTimes($date),
         ]);
     }
 

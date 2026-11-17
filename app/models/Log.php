@@ -85,4 +85,23 @@ class Log extends Model
         return (int)self::one('SELECT COUNT(*) AS c FROM gate_logs WHERE action = ? AND logged_at BETWEEN ? AND ?',
             [$action, "$d 00:00:00", "$d 23:59:59"])['c'];
     }
+
+        /** One row per student for a date: first time-in and last release. */
+    public static function dailyTimes($date)
+    {
+        return self::all(
+            "SELECT l.student_id, l.student_name,
+                    sec.grade_level AS grade, sec.section_name AS section,
+                    MIN(CASE WHEN l.action = 'TIME_IN' THEN l.logged_at END) AS time_in,
+                    MAX(CASE WHEN l.action IN ('RELEASED','RELEASED_OVERRIDE') THEN l.logged_at END) AS time_out
+             FROM gate_logs l
+             LEFT JOIN students s ON s.student_id = l.student_id
+             LEFT JOIN sections sec ON sec.section_id = s.section_id
+             WHERE l.logged_at BETWEEN ? AND ?
+             GROUP BY l.student_id, l.student_name, sec.grade_level, sec.section_name
+             HAVING time_in IS NOT NULL OR time_out IS NOT NULL
+             ORDER BY l.student_name",
+            ["$date 00:00:00", "$date 23:59:59"]
+        );
+    }
 }

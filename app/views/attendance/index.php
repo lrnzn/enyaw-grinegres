@@ -21,13 +21,15 @@
   <input type="hidden" name="section" value="<?= e($section) ?>">
   <div class="card table-wrap">
     <table>
-      <thead><tr><th></th><th>Student</th><th>Section</th><th>Status</th><th>Remarks</th></tr></thead>
+            <thead><tr><th></th><th>Student</th><th>Section</th><th>Time in</th><th>Time out</th><th>Status</th><th>Remarks</th></tr></thead>
       <tbody>
       <?php foreach ($rows as $r): ?>
         <tr>
           <td><img class="thumb" src="<?= e(avatar($r['full_name'], $r['photo'])) ?>" alt=""></td>
           <td><strong><?= e($r['full_name']) ?></strong></td>
           <td><?= $r['section'] ? e($r['grade']) . ', ' . e($r['section']) : '—' ?></td>
+          <td><?= fmt_time($r['time_in']) ?></td>
+          <td><?= fmt_time($r['time_out']) ?></td>
           <td>
             <select class="status-select" name="status[<?= (int)$r['id'] ?>]">
               <option value="">Not marked</option>
@@ -39,7 +41,7 @@
           <td><input class="remarks-input" name="remarks[<?= (int)$r['id'] ?>]" value="<?= e($r['remarks'] ?? '') ?>" maxlength="255" placeholder="Optional"></td>
         </tr>
       <?php endforeach; ?>
-      <?php if (!$rows): ?><tr><td colspan="5" class="muted center">No students in this selection.</td></tr><?php endif; ?>
+      <?php if (!$rows): ?><tr><td colspan="7" class="muted center">No students in this selection.</td></tr><?php endif; ?>
       </tbody>
     </table>
   </div>

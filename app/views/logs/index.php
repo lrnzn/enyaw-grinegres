@@ -16,10 +16,10 @@
   </label>
   <button class="btn btn-primary">Show records</button>
 </form>
-
+<?php $tmap = []; foreach ($times as $t) $tmap[$t['student_id']] = $t; ?>
 <div class="card table-wrap">
   <table>
-    <thead><tr><th>Time</th><th>Student</th><th>Action</th><th>Picked up by</th><th>Details</th><th>Recorded by</th></tr></thead>
+     <thead><tr><th>Time</th><th>Student</th><th>Action</th><th>Time in</th><th>Time out</th><th>Picked up by</th><th>Details</th><th>Recorded by</th></tr></thead>
     <tbody>
     <?php foreach ($rows as $r): ?>
       <tr>
@@ -27,6 +27,8 @@
         <td><strong><?= e($r['student_name']) ?></strong>
             <small class="block muted"><?= e(trim(($r['grade'] ?? '') . ' ' . ($r['section'] ?? ''))) ?></small></td>
         <td><span class="badge <?= action_class($r['action']) ?>"><?= e(action_label($r['action'])) ?></span></td>
+        <td><?= fmt_time($tmap[$r['student_id']]['time_in'] ?? null) ?></td>
+        <td><?= fmt_time($tmap[$r['student_id']]['time_out'] ?? null) ?></td>
         <td><?= e($r['released_to_name'] ?: '—') ?></td>
         <td><?= e($r['note'] ?: '—') ?>
           <?php if ($r['approver_name']): ?><small class="block muted">Approved by <?= e($r['approver_name']) ?></small><?php endif; ?>
@@ -34,7 +36,7 @@
         <td><?= e($r['staff_name'] ?: '—') ?></td>
       </tr>
     <?php endforeach; ?>
-    <?php if (!$rows): ?><tr><td colspan="6" class="muted center">No records for this date and action.</td></tr><?php endif; ?>
+    <?php if (!$rows): ?><tr><td colspan="8" class="muted center">No records for this date and action.</td></tr><?php endif; ?>
     </tbody>
   </table>
 </div>
