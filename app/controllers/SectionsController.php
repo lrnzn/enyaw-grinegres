@@ -1,7 +1,7 @@
 <?php
 class SectionsController extends Controller
 {
-    private const GRADES = ['Kinder', 'Grade 1', 'Grade 2', 'Grade 3', 'Grade 4', 'Grade 5', 'Grade 6'];
+    private const GRADES = Section::GRADES;
 
     private static function currentYear()
     {
@@ -63,6 +63,10 @@ class SectionsController extends Controller
         $this->post();
         $this->requireAdmin();
         $sec = Section::find($id) ?: $this->redirect(url('sections'));
+        if (Schedule::sectionHasAttendance($id)) {
+            flash('error', 'This section has period attendance records, so it is kept. Records are never deleted.');
+            $this->redirect(url('sections'));
+        }
         Section::delete($id);
         Audit::record('SECTION_DELETED', 'section', (int)$id, $sec['grade_level'] . ', ' . $sec['section_name']);
         flash('success', 'Section removed. Its students are kept and now have no section.');

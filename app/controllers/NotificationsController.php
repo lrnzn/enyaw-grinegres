@@ -12,7 +12,7 @@ class NotificationsController extends Controller
             'title' => 'Messages to parents', 'active' => 'messages', 'date' => $date, 'status' => $status,
             'rows' => Notification::query($date, $date, $status),
             'counts' => Notification::counts($date, $date),
-            'driver' => config('notifications.driver'), 'enabled' => (bool)config('notifications.enabled'),
+            'live' => Notifier::isLive(), 'channels' => Notifier::channels(), 'enabled' => (bool)config('notifications.enabled'),
             'retryable' => count(Notification::retryableIds()),
         ]);
     }

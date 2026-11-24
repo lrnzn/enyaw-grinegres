@@ -1,7 +1,7 @@
 <div class="login-split">
   <section class="login-intro">
     <div class="brand">
-      <div class="brand-logo"><?= icon('shield', 24) ?></div>
+      <div class="brand-logo<?= school_logo() ? " has-logo" : "" ?>"><?= brand_mark() ?></div>
       <div><strong><?= e(config('app_name')) ?></strong><small><?= e(config('school_name')) ?></small></div>
     </div>
     <h2>Every child goes home with the right person.</h2>

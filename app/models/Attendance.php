@@ -1,28 +1,32 @@
 <?php
 class Attendance extends Model
 {
-        /** Enrolled students with their status on a date (optionally for one section). */
+    /** Enrolled students with their status on a date (optionally for one section). */
     public static function rows($date, $sectionId = null)
     {
         $sql = "SELECT s.student_id AS id, s.first_name, s.last_name, s.name_suffix, s.photo_path AS photo,
-                       sec.grade_level AS grade, sec.section_name AS section, a.status, a.remarks,
-                       (SELECT MIN(l.logged_at) FROM gate_logs l
-                         WHERE l.student_id = s.student_id AND l.action = 'TIME_IN'
-                           AND l.logged_at BETWEEN ? AND ?) AS time_in,
-                       (SELECT MAX(l.logged_at) FROM gate_logs l
-                         WHERE l.student_id = s.student_id AND l.action IN ('RELEASED','RELEASED_OVERRIDE')
-                           AND l.logged_at BETWEEN ? AND ?) AS time_out
+                       sec.grade_level AS grade, sec.section_name AS section, a.status, a.remarks
                 FROM students s
                 LEFT JOIN sections sec ON sec.section_id = s.section_id
                 LEFT JOIN attendance a ON a.student_id = s.student_id AND a.attendance_date = ?
                 WHERE s.status = 'enrolled'";
-        $start = "$date 00:00:00";
-        $end   = "$date 23:59:59";
-        $p = [$start, $end, $start, $end, $date];
+        $p = [$date];
         if ($sectionId) { $sql .= ' AND s.section_id = ?'; $p[] = (int)$sectionId; }
         $rows = self::all($sql . ' ORDER BY s.last_name, s.first_name', $p);
         foreach ($rows as &$r) $r['full_name'] = compose_name($r);
         return $rows;
+    }
+
+    /** Saved daily records in a date range, for the Excel export. */
+    public static function export($from, $to, $sectionId = null)
+    {
+        $sql = "SELECT a.attendance_date AS date, sec.grade_level AS grade, sec.section_name AS section,
+                       s.first_name, s.last_name, s.name_suffix, s.lrn, a.status, a.remarks
+                FROM attendance a JOIN students s ON s.student_id = a.student_id LEFT JOIN sections sec ON sec.section_id = s.section_id
+                WHERE a.attendance_date BETWEEN ? AND ?";
+        $p = [$from, $to];
+        if ($sectionId) { $sql .= ' AND s.section_id = ?'; $p[] = (int)$sectionId; }
+        return self::all($sql . ' ORDER BY a.attendance_date, LENGTH(sec.grade_level), sec.grade_level, sec.section_name, s.last_name, s.first_name', $p);
     }
 
     public static function set($studentId, $date, $status, $remarks, $userId)

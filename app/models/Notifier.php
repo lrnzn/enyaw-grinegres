@@ -33,6 +33,49 @@ class Notifier
         return "$school: $first was picked up at $time by " . $log['released_to_name'] . '.';
     }
 
+    /** Channels in use: 'email' and/or 'sms'. */
+    public static function channels()
+    {
+        $c = config('notifications.channels');
+        return is_array($c) && $c ? array_values(array_intersect($c, ['email', 'sms'])) : ['email'];
+    }
+
+    public static function validEmail($raw)
+    {
+        $e = trim((string)$raw);
+        return ($e !== '' && filter_var($e, FILTER_VALIDATE_EMAIL)) ? $e : null;
+    }
+
+    /** The guardian's address for a channel, or null when there is no usable one. */
+    public static function addressFor($channel, array $g)
+    {
+        return $channel === 'email' ? self::validEmail($g['email'] ?? '') : self::normalizePhone($g['contact_number'] ?? ($g['contact'] ?? ''));
+    }
+
+    /** True when a guardian can be reached on at least one channel in use. */
+    public static function reachable(array $g)
+    {
+        foreach (self::channels() as $ch) if (self::addressFor($ch, $g)) return true;
+        return false;
+    }
+
+    /** For screens: what is missing, e.g. "No valid email address". */
+    public static function missingText()
+    {
+        $names = array_map(function ($c) { return $c === 'email' ? 'email address' : 'mobile number'; }, self::channels());
+        return 'No valid ' . implode(' or ', $names);
+    }
+
+    /** True when at least one channel really sends (not just simulates). */
+    public static function isLive()
+    {
+        foreach (self::channels() as $ch) {
+            if ($ch === 'email' && config('notifications.email.driver') === 'smtp') return true;
+            if ($ch === 'sms' && config('notifications.driver') === 'semaphore') return true;
+        }
+        return false;
+    }
+
     /** Create and send the messages for one gate event. Never throws. Returns the notification ids. */
     public static function notify($studentId, $event, $logId)
     {
@@ -44,14 +87,17 @@ class Notifier
             $message = self::compose($event, $student, $log);
             $ids = []; $seen = [];
             foreach (Student::notifyRecipients($studentId) as $g) {
-                $num = self::normalizePhone($g['contact_number']);
-                if ($num && isset($seen[$num])) continue;          // two guardians, one phone: send once
-                if ($num) $seen[$num] = true;
-                $ids[] = Notification::create([
-                    'student_id' => (int)$studentId, 'guardian_id' => (int)$g['id'], 'log_id' => (int)$logId, 'event' => $event,
-                    'recipient' => $num ?: '(none)', 'recipient_name' => $g['full_name'], 'message' => $message,
-                    'status' => $num ? 'queued' : 'failed', 'note' => $num ? null : 'No valid mobile number on file',
-                ]);
+                foreach (self::channels() as $ch) {
+                    $addr = self::addressFor($ch, $g);
+                    if ($addr && isset($seen[$ch . '|' . $addr])) continue;   // two guardians, one address: send once
+                    if ($addr) $seen[$ch . '|' . $addr] = true;
+                    $ids[] = Notification::create([
+                        'student_id' => (int)$studentId, 'guardian_id' => (int)$g['id'], 'log_id' => (int)$logId, 'event' => $event,
+                        'channel' => $ch, 'recipient' => $addr ?: '(none)', 'recipient_name' => $g['full_name'], 'message' => $message,
+                        'status' => $addr ? 'queued' : 'failed',
+                        'note' => $addr ? null : ($ch === 'email' ? 'No valid email address on file' : 'No valid mobile number on file'),
+                    ]);
+                }
             }
             self::dispatch($ids);
             return $ids;
@@ -63,7 +109,7 @@ class Notifier
 
     /**
      * Send queued messages now.
-     * The gate never waits more than notifications.timeout_seconds IN TOTAL: if the SMS service is slow,
+     * The gate never waits more than notifications.timeout_seconds IN TOTAL: if the service is slow,
      * the messages that did not fit stay "queued" and can be sent later with the Try again button.
      */
     public static function dispatch(array $ids)
@@ -76,7 +122,7 @@ class Notifier
                 if ($n['recipient'] === '(none)') continue;
                 $left = $deadline - microtime(true);
                 if ($left <= 0.3) continue;                          // out of time: stays queued
-                [$status, $note] = self::deliver($n['recipient'], $n['message'], (int)ceil($left));
+                [$status, $note] = self::deliver($n, (int)ceil($left));
                 Notification::setResult($id, $status, $note);
             } catch (Throwable $e) {
                 error_log('SGVMS notifications: ' . $e->getMessage());
@@ -86,10 +132,16 @@ class Notifier
     }
 
     /** Returns [status, note]. */
-    private static function deliver($number, $message, $timeout)
+    private static function deliver(array $n, $timeout)
     {
-        $driver = config('notifications.driver');
-        if ($driver === 'semaphore') return self::viaSemaphore($number, $message, $timeout);
+        if ($n['channel'] === 'email') {
+            if (config('notifications.email.driver') !== 'smtp') return ['simulated', 'Simulated: nothing was really sent'];
+            $subject = config('school_name') . ': ' . ($n['event'] === 'arrival' ? 'arrival notice' : 'pickup notice');
+            $body = $n['message'] . "\n\nThis is an automatic message from " . config('school_name') . '. Please do not reply to this email.';
+            [$ok, $note] = Mailer::send($n['recipient'], $n['recipient_name'], $subject, $body, $timeout);
+            return [$ok ? 'sent' : 'failed', $note];
+        }
+        if (config('notifications.driver') === 'semaphore') return self::viaSemaphore($n['recipient'], $n['message'], $timeout);
         return ['simulated', 'Simulated: nothing was really sent'];
     }
 

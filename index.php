@@ -16,6 +16,11 @@ $config = require ROOT . '/config/config.php';
 if (is_file(ROOT . '/config/config.local.php')) {
     $config = merge_config($config, require ROOT . '/config/config.local.php');
 }
+// Safe by default: without config.local.php, demo mode and detailed errors stay on only for a local computer.
+if (!is_file(ROOT . '/config/config.local.php')) {
+    $host = strtolower(preg_replace('/:\d+$/', '', $_SERVER['HTTP_HOST'] ?? 'localhost'));
+    if (!in_array($host, ['localhost', '127.0.0.1', '[::1]'], true)) { $config['demo_mode'] = false; $config['debug'] = false; }
+}
 $GLOBALS['config'] = $config;
 date_default_timezone_set($config['timezone']);
 

@@ -3,16 +3,18 @@
 PHP + HTML + CSS web app (MVC structure) with a MySQL database loaded from `.sql` files.
 Flow: **register students and guardians, scan the QR code, verify the guardian's photo, release or deny, and keep a log.**
 
-This is **version 2.1**. Its database matches the diagram `SGVMS-ERD-v2.1` (13 tables).
+This is **version 2.3**. Its database is the version 2.1 diagram (`SGVMS-ERD-v2.1`, 13 tables) plus the 2.2 `archived` student status and the 2.3 per-period attendance tables (`periods`, `subjects`, `class_schedules`, `period_attendance`).
 
 ---
 ## 1. Run it locally on XAMPP
 1. Copy this folder to `C:\xampp\htdocs\sgvms`.
 2. In the XAMPP Control Panel, **start Apache and MySQL**.
-3. Open **http://localhost/phpmyadmin** and use the **Import** tab:
-   - import `database/schema.sql` (creates the `sgvms` database and all tables)
-   - then import `database/sample_data.sql` (demo students, guardians and accounts)
-4. Open **http://localhost/sgvms/**
+3. Open **http://localhost/phpmyadmin**. Click **New**, create an empty database named `sgvms` (collation `utf8mb4_unicode_ci`), then **click `sgvms` in the left list** so it is selected.
+4. Use the **Import** tab on that database:
+   - import `database/schema.sql` (creates all the tables)
+   - then import `database/sample_data.sql` (demo students, guardians, schedules and accounts)
+   - the SQL files do not name a database: they import into whichever one is selected.
+5. Open **http://localhost/sgvms/**
 
 XAMPP's default database login (`root`, empty password) is already set in `config/config.php`.
 
@@ -22,21 +24,27 @@ XAMPP's default database login (`root`, empty password) is already set in `confi
 | Teacher | `teacher` | `teacher123` | Gate station, students (limited details), attendance, activity logs |
 | Gate staff | `guard` | `guard123` | Gate station, students (limited details), activity logs |
 
-### Upgrading from version 2 (keep your data)
-1. In phpMyAdmin, **Export** your `sgvms` database first, as a backup.
-2. Replace the project files with this version (keep your `uploads/` folder and your `config/config.local.php`, if you have one).
-3. In phpMyAdmin, select `sgvms` and import `database/migrate_v2_to_v2_1.sql`. **Run it once.** It adds the `notifications` table and the per-guardian "receive messages" switch, and keeps all your data.
-4. Accounts that only exist in `sample_data.sql` (such as `teacher`) do not exist on an upgraded database; add them from **Staff accounts**.
-
-### Upgrading from version 1 (keep your data)
-1. In phpMyAdmin, **Export** your `sgvms` database first, as a backup.
-2. Replace the project files with this version (keep your `uploads/` folder).
-3. In phpMyAdmin, select `sgvms`, open the **Import** tab and import `database/migrate_v1_to_v2.sql` (it goes straight to version 2.1; do not run the v2 script afterwards).
-   It renames the old tables to `*_v1`, creates the new ones and copies everything across.
-   Guardians' and staff names are split at the last space ("Maria Clara Santos" becomes first name "Maria Clara", last name "Santos"), so check them afterwards.
-   The old `*_v1` tables stay as a safety copy; the last lines of the script show how to drop them once you are happy.
+### Starting again with a fresh database
+`schema.sql` is for a **new, empty** database. To start over, delete all the tables (or create a new database) and import `schema.sql` again. The old `migrate_*.sql` upgrade scripts were removed: they only worked on older databases.
 
 ---
+## 2b. What is new in version 2.3
+- **Attendance per class period.** Admin sets up **Schedules** once: the bell schedule (periods and times), the subjects, and which teacher teaches which section on which day and period. Nothing is fixed; there are buttons to start from a sample bell schedule and sample subjects.
+- **Teachers mark their own classes.** *Attendance > By period* opens the class happening now by itself (no "Show class" button). Statuses: present, late, absent, excused, no class. Students already marked from the gate or the daily record are preselected, and *Mark all present* is one click. Teachers can record today and earlier days of the current week; the administrator can record any date.
+- **Daily (gate) attendance** is still there under the *Daily (gate)* tab.
+- **Download as Excel (.xlsx)** on both tabs: pick the dates (and a section, for the administrator). Period exports have an *Attendance* sheet and a *Summary* sheet of totals per student. Teachers only get their own classes. If the host has no zip support, a CSV that Excel opens is sent instead.
+- Schedules and sections that already have attendance records cannot be deleted, so history is safe.
+
+## 2a. What is new in version 2.2
+- **School name** is now **Green Acres Christian School**. Put the logo at `assets/img/logo.png` (or `.jpg`, `.webp`, `.svg`); it replaces the shield on the sidebar and sign-in page.
+- **Email messages to parents** (free) replace SMS by default: `notifications.channels` is `['email']`. Mail goes through any SMTP server with a small built-in client (no libraries). For Gmail: turn on 2-step verification, create an **App Password**, then set `notifications.email` (`driver` `smtp`, `username`, `password`) in `config/config.local.php`. Until then messages are simulated. Each guardian needs an **email**; add or edit it on the student's page (*Edit contact*). SMS still works by adding `'sms'` to `channels`.
+  - Gmail limits how many emails a free account may send per day. If the school grows past it, use a school email service.
+  - InfinityFree blocks PHP `mail()`, which is why SMTP is used.
+- **Archive instead of delete.** Students are never deleted: *Archive* hides them everywhere except *Students > Show archived*, keeping all records, and *Restore* brings them back. Archived students cannot be timed in at the gate.
+- **Import students from CSV** (*Students > Import CSV*): upload, review the preview, then confirm. Download the template there. Missing sections are created, duplicates are skipped, and a guardian with the same email is linked, not duplicated.
+- **Grades** now run from Kinder to Grade 10.
+- **Safe defaults:** without `config.local.php`, demo mode and detailed errors are switched off on any address except localhost.
+
 ## 2. What is new in version 2.1
 - **Messages to parents.** When a child arrives (time-in) and when a child is picked up, every authorized guardian who has messages switched on gets a text. After a substitute pickup the message names the substitute and the approver. Everything is listed under **Messages**, with its status.
   - By default messages are **simulated**: they appear on the Messages page and on the gate confirmation screen, but nothing is really sent. This is safe for demos and testing.
@@ -67,27 +75,11 @@ XAMPP's default database login (`root`, empty password) is already set in `confi
 6. Dashboard > **Reset demo logs** restarts the demo.
 
 ---
-## 3b. If the camera does not start
-The **Use camera** button on the Gate station explains what is wrong and what to do. The usual cause:
-
-- **"Camera access is blocked."** The first time, the browser asks "Allow this site to use the camera?". If someone clicks **Block** (or closes the box several times), the browser remembers that for this website, **even after the computer is restarted**, and a web page is not allowed to ask again. This cannot be changed from the system's code. Turn it back on in the browser:
-  - **Chrome / Edge:** click the icon at the left end of the address bar, set **Camera** to **Allow** (or choose **Reset permission**), then press **Try again** on the page. The system notices the change and starts the camera by itself, with no reload.
-  - **Firefox:** click the camera or lock icon in the address bar and remove the block next to "Use the Camera".
-  - **Safari:** Safari > Settings for This Website > Camera > Allow (on iPad: aA > Website Settings).
-  - Or open `chrome://settings/content/camera` (Edge: `edge://settings/content/camera`) and remove this site from the blocked list. The page has a **Copy settings address** button for this.
-- **"The camera needs a secure address."** Browsers only allow the camera on `https://` and on `http://localhost`. On the school computer use `http://localhost/sgvms/`. Other devices need HTTPS (see section 4).
-- **"The camera is busy."** Another app or tab (Teams, Zoom, the Camera app) is using it.
-- **"No camera found."** Plug one in, or use the search box or a USB scanner.
-- Windows: Settings > Privacy & security > Camera must allow camera access and desktop apps.
-
-The search box and USB scanners always work, with or without the camera.
-
----
 ## 4. Putting it on the internet (checklist)
 **You need:** hosting with PHP 8.0+ and MySQL/MariaDB (shared cPanel hosting is enough) and **HTTPS**. Never run this on plain HTTP: it carries children's photos and guardians' contact details.
 
 1. **Create the database** in your host's panel: a new database and a *dedicated user* with a long random password, granted only on that database. Do **not** use `root`.
-2. **Import `database/schema.sql` only**, never `sample_data.sql`. On shared hosting, delete the first lines `CREATE DATABASE ...` and `USE ...`, then select *your* database in phpMyAdmin before importing.
+2. **Import `database/schema.sql` only**, never `sample_data.sql`. Click *your* database's name in phpMyAdmin first so it is selected, then use Import. The file works with any database name (such as `if0_12345_sgvms`) and needs no editing.
 3. **Create the first administrator** on your own computer:
    `php database/create_admin.php "First name" "Last name" username "a-long-password"`
    Run the printed `INSERT` in phpMyAdmin (SQL tab). All other staff are added from the **Staff accounts** page.
@@ -95,9 +87,7 @@ The search box and USB scanners always work, with or without the camera.
 5. **Upload limits:** photos and letters can be up to 5 MB. The included `.user.ini` raises PHP's limits; if uploads fail on your host, set `upload_max_filesize` to at least 6M and `post_max_size` to at least 12M.
 6. **Upload** the project by FTP. Do **not** upload `database/sample_data.sql`. Make `uploads/` writable (permissions 755 or 775).
 7. **Force HTTPS:** in `.htaccess` uncomment the three redirect lines.
-8. **Real text messages (optional).** Messages are simulated until you connect an SMS service. The system supports Semaphore (semaphore.co, a Philippine provider): create an account, get an API key, and put this in `config/config.local.php`:
-   `'notifications' => ['driver' => 'semaphore', 'semaphore' => ['api_key' => 'YOUR-KEY']]`
-   Each text costs a credit, so check the price and have the school agree to it. Parents need to be told and give consent, and each guardian's mobile number must be correct (09xx xxx xxxx). Test with one guardian first.
+8. **Real email messages.** Messages are simulated until you set the Gmail details (see section 2a) in `config/config.local.php`. Test with one guardian first, and check the spam folder. Parents need to be told and give consent. (Paid SMS is optional: add `'sms'` to `notifications.channels` and set up Semaphore.)
 9. **Test**, then delete the test data.
 10. **Back up** regularly: phpMyAdmin > Export **and** the `uploads/` folder.
 
@@ -108,8 +98,7 @@ Password hashing, sign-in lockout (5 failures in 10 minutes, also applied to app
 
 ### Still to do before real use
 - **Data Privacy Act (RA 10173):** privacy notice, parental consent form, retention policy, and a data protection officer for the school.
-- Safe production defaults when `config.local.php` is missing (today the default is demo mode).
-- Resizing uploaded photos (and removing their location data), editing a guardian's details, releasing siblings together, and printable reports.
+- Resizing uploaded photos (and removing their location data), releasing siblings together, and printable reports.
 - A Content-Security-Policy header, and a limited database user that cannot delete log rows.
 - A parent-facing app or page, email as a second channel, offline fallback, two-factor sign-in, automatic backups, and an independent security review.
 
@@ -121,12 +110,12 @@ sgvms/
   config/                 config.php (defaults), config.local.example.php (live settings template)
   app/
     core/                 App (router), Controller, Model, Database, helpers
-    models/               User, Student, Guardian, Section, Teacher, Collector, Confirmation, Attendance, Log, LoginLog, Audit, Notification, Notifier
-    controllers/          Auth, Dashboard, Students, Gate, Sections, Staff, Attendance, Logs, Notifications, Photo
+    models/               Mailer, Period, Subject, Schedule, PeriodAttendance, User, Student, Guardian, Section, Teacher, Collector, Confirmation, Attendance, Log, LoginLog, Audit, Notification, Notifier
+    controllers/          Auth, Dashboard, Students, Import, Schedule, Gate, Sections, Staff, Attendance, Logs, Notifications, Photo
     views/                HTML pages for each controller
   assets/                 css, js, fonts, offline QR libraries
   uploads/                Uploaded photos and letters (blocked from direct web access)
-  database/               schema.sql, sample_data.sql, migrate_v1_to_v2.sql, migrate_v2_to_v2_1.sql, create_admin.php
+  database/               schema.sql, sample_data.sql, create_admin.php
 ```
 URLs look like `index.php?url=controller/method/param` (example: `?url=gate/verify/3`).
 
@@ -136,3 +125,21 @@ URLs look like `index.php?url=controller/method/param` (example: `?url=gate/veri
 ### Design
 Chalkboard green and sky blue, set in Lexend (a typeface designed for readability), bundled so it works offline.
 Colors are CSS variables at the top of `assets/css/style.css`.
+
+## Reports (version 2.4)
+
+- **Activity logs → date range.** Tabs for *Today*, *This week*, *Month* and *Custom range* (admin). Teachers see the current week only.
+- **Filters.** Grade level, section and action. The CSV export follows the same filters.
+- **Attendance summary.** A table per grade level (or per section once a grade or section is chosen) with present, late, absent, excused and the attendance rate. Source is the daily (gate) attendance or the class-period records.
+- **Printable attendance sheet** (`Attendance → Open printable attendance sheet`, or from the logs summary). Weekly or monthly grid per section, or per subject. It has the school logo, adviser, legend, totals and signature lines, and prints in landscape.
+
+## Version 2.5
+
+- **Teachers see only their own sections.** A teacher's sections are the one they advise plus any section on their timetable. This applies to the student list, student pages and ID cards, daily attendance, the printable sheet, the Excel export, the activity log and the summary. The gate station still looks up every student, because the gate has to work for anyone.
+- **Minimal look.** A white sidebar, flat cards, thin borders and a single green accent.
+
+## Version 2.7
+
+- **Whole-day (gate) attendance belongs to the class adviser.** Teachers who advise a section see the Daily tab, the daily sheet, the daily export and the daily summary for that section only. Subject teachers use attendance by period and the "By subject" sheet. The administrator can still use everything.
+- **Teachers with no classes yet** see a notice asking them to contact the Vice Principal, so an empty page is never unexplained.
+

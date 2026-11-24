@@ -15,11 +15,25 @@ function base_path() {
     return $b;
 }
 function url($path = '') { return base_path() . '/index.php?url=' . ltrim($path, '/'); }
-/** Link to a static file. The file's change time is added so browsers load a new version after an update. */
-function asset($path)
+function asset($path)    { return base_path() . '/' . ltrim($path, '/'); }
+
+/** URL of the school logo (assets/img/logo.png, .jpg, .webp or .svg), or null when none was uploaded yet. */
+function school_logo()
 {
-    $file = ROOT . '/' . ltrim($path, '/');
-    return base_path() . '/' . ltrim($path, '/') . (is_file($file) ? '?v=' . filemtime($file) : '');
+    static $url = false;
+    if ($url === false) {
+        $url = null;
+        foreach (['png', 'jpg', 'webp', 'svg'] as $ext) {
+            if (is_file(ROOT . "/assets/img/logo.$ext")) { $url = asset("assets/img/logo.$ext") . '?v=' . filemtime(ROOT . "/assets/img/logo.$ext"); break; }
+        }
+    }
+    return $url;
+}
+/** The logo image, or the default shield icon. */
+function brand_mark($size = 24)
+{
+    $l = school_logo();
+    return $l ? '<img src="' . e($l) . '" alt="" class="logo-img">' : icon('shield', $size);
 }
 
 function current_user() { return $_SESSION['user'] ?? null; }

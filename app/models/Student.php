@@ -17,12 +17,15 @@ class Student extends Model
     public static function count()             { return (int)self::one("SELECT COUNT(*) AS c FROM students WHERE status = 'enrolled'")['c']; }
 
     /** Every search word must match first name, last name, LRN or QR code. */
-    public static function search($q = '', $enrolledOnly = false)
+    public static function search($q = '', $enrolledOnly = false, $showArchived = false, $mineOnly = false)
     {
         $sql = self::SEL;
         $params = [];
         $where = [];
         if ($enrolledOnly) $where[] = "s.status = 'enrolled'";
+        elseif (!$showArchived) $where[] = "s.status <> 'archived'";
+        $mine = $mineOnly ? Section::mineIds() : null;   // the gate looks up everyone; the student list is limited for teachers
+        if ($mine !== null) $where[] = $mine ? 's.section_id IN (' . implode(',', $mine) . ')' : '1=0';
         $terms = preg_split('/\s+/', trim($q), -1, PREG_SPLIT_NO_EMPTY);
         foreach ($terms as $i => $t) {
             $where[] = "(s.first_name LIKE :a$i OR s.last_name LIKE :b$i OR s.lrn LIKE :c$i OR s.qr_token LIKE :d$i)";
@@ -61,8 +64,8 @@ class Student extends Model
         self::run($sql . ' WHERE student_id=?', $p);
     }
 
-    /** Links, attendance and confirmations go with the student; gate history stays (names are copied into each row). */
-    public static function delete($id) { self::run('DELETE FROM students WHERE student_id = ?', [(int)$id]); }
+    /** Students are never deleted: archiving hides them but keeps every record. */
+    public static function setStatus($id, $status) { self::run('UPDATE students SET status = ? WHERE student_id = ?', [$status, (int)$id]); }
 
     /** Guardians registered for a student (with link info). */
     public static function guardians($id)
@@ -82,7 +85,7 @@ class Student extends Model
     public static function notifyRecipients($id)
     {
         $rows = self::all(
-            'SELECT g.guardian_id AS id, g.first_name, g.last_name, g.name_suffix, g.contact_number
+            'SELECT g.guardian_id AS id, g.first_name, g.last_name, g.name_suffix, g.contact_number, g.email
              FROM student_guardians sg JOIN guardians g ON g.guardian_id = sg.guardian_id
              WHERE sg.student_id = ? AND sg.is_authorized = 1 AND sg.receive_notifications = 1 ORDER BY g.last_name, g.first_name',
             [(int)$id]);

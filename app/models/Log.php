@@ -31,7 +31,7 @@ class Log extends Model
         self::run('SELECT student_id FROM students WHERE student_id = ? FOR UPDATE', [(int)$studentId]);
     }
 
-    /** Filters: from, to (Y-m-d), action, student_id, id. Newest first. */
+    /** Filters: from, to (Y-m-d), action, student_id, id, grade, section_id. Newest first. */
     public static function query($f = [], $limit = null)
     {
         $sql = self::SEL . ' WHERE 1=1';
@@ -41,6 +41,10 @@ class Log extends Model
         if (!empty($f['action']))     { $sql .= ' AND l.action = ?';     $p[] = $f['action']; }
         if (!empty($f['id']))         { $sql .= ' AND l.log_id = ?';     $p[] = (int)$f['id']; }
         if (!empty($f['student_id'])) { $sql .= ' AND l.student_id = ?'; $p[] = (int)$f['student_id']; }
+        $mine = Section::mineIds();
+        if ($mine !== null) $sql .= $mine ? ' AND s.section_id IN (' . implode(',', $mine) . ')' : ' AND 1=0';
+        if (!empty($f['grade']))      { $sql .= ' AND sec.grade_level = ?'; $p[] = $f['grade']; }
+        if (!empty($f['section_id'])) { $sql .= ' AND s.section_id = ?';   $p[] = (int)$f['section_id']; }
         $sql .= ' ORDER BY l.log_id DESC';
         if ($limit) $sql .= ' LIMIT ' . (int)$limit;
         return self::all($sql, $p);
@@ -84,24 +88,5 @@ class Log extends Model
         $d = date('Y-m-d');
         return (int)self::one('SELECT COUNT(*) AS c FROM gate_logs WHERE action = ? AND logged_at BETWEEN ? AND ?',
             [$action, "$d 00:00:00", "$d 23:59:59"])['c'];
-    }
-
-        /** One row per student for a date: first time-in and last release. */
-    public static function dailyTimes($date)
-    {
-        return self::all(
-            "SELECT l.student_id, l.student_name,
-                    sec.grade_level AS grade, sec.section_name AS section,
-                    MIN(CASE WHEN l.action = 'TIME_IN' THEN l.logged_at END) AS time_in,
-                    MAX(CASE WHEN l.action IN ('RELEASED','RELEASED_OVERRIDE') THEN l.logged_at END) AS time_out
-             FROM gate_logs l
-             LEFT JOIN students s ON s.student_id = l.student_id
-             LEFT JOIN sections sec ON sec.section_id = s.section_id
-             WHERE l.logged_at BETWEEN ? AND ?
-             GROUP BY l.student_id, l.student_name, sec.grade_level, sec.section_name
-             HAVING time_in IS NOT NULL OR time_out IS NOT NULL
-             ORDER BY l.student_name",
-            ["$date 00:00:00", "$date 23:59:59"]
-        );
     }
 }

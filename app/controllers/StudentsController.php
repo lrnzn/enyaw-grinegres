@@ -5,16 +5,18 @@ class StudentsController extends Controller
     {
         $this->requireLogin();
         $q = trim($_GET['q'] ?? '');
+        $showArchived = is_admin() && !empty($_GET['archived']);
         $this->view('students/index', [
             'title' => 'Students', 'active' => 'students',
-            'students' => Student::search($q), 'q' => $q, 'status' => Log::statusMap(),
+            'students' => Student::search($q, false, $showArchived, true), 'q' => $q, 'showArchived' => $showArchived, 'status' => Log::statusMap(),
         ]);
     }
 
     public function show($id = 0)
     {
         $this->requireLogin();
-        $s = Student::find($id) ?: $this->missing();
+        $s = Student::find($id);
+        if (!$s || !Section::canSee($s['section_id'] ?? 0)) $this->missing();
         $this->view('students/show', [
             'title' => $s['full_name'], 'active' => 'students',
             's' => $s, 'guardians' => Student::guardians($id),
@@ -81,21 +83,27 @@ class StudentsController extends Controller
         $this->redirect(url('students/show/' . $id));
     }
 
-    public function delete($id = 0)
+    /** Archive instead of delete: the student, guardians, photos and history all stay in the database. */
+    public function archive($id = 0)
     {
         $this->post();
         $this->requireAdmin();
         $s = Student::find($id) ?: $this->missing();
-        $guardians = Student::guardians($id);
-        $letters = Confirmation::lettersFor($id);
-        Student::delete($id);
-        // Clean up everything that belonged only to this student.
-        remove_upload($s['photo']);
-        foreach ($letters as $l) remove_upload($l);
-        foreach ($guardians as $g) remove_upload(Guardian::deleteIfOrphan($g['id']));
-        Audit::record('STUDENT_DELETED', 'student', (int)$id, $s['full_name']);
-        flash('success', 'Student removed with their photo and any guardians who were linked only to them. Gate history is kept.');
+        Student::setStatus($id, 'archived');
+        Audit::record('STUDENT_ARCHIVED', 'student', (int)$id, $s['full_name']);
+        flash('success', $s['full_name'] . ' was archived. All records are kept, and the student can be restored at any time.');
         $this->redirect(url('students'));
+    }
+
+    public function restore($id = 0)
+    {
+        $this->post();
+        $this->requireAdmin();
+        $s = Student::find($id) ?: $this->missing();
+        Student::setStatus($id, 'enrolled');
+        Audit::record('STUDENT_RESTORED', 'student', (int)$id, $s['full_name']);
+        flash('success', $s['full_name'] . ' was restored.');
+        $this->redirect(url('students/show/' . $id));
     }
 
     /* ---------- Guardians (managed from the student page) ---------- */
@@ -111,11 +119,16 @@ class StudentsController extends Controller
             flash('error', 'Guardian first name, last name and relationship are required.');
             $this->redirect($back);
         }
+        $email = $this->input('email');
+        if ($email !== '' && !Notifier::validEmail($email)) {
+            flash('error', 'The guardian email address is not valid.');
+            $this->redirect($back);
+        }
         $photo = $this->uploadPhoto('photo');
         if ($photo === false) $this->redirect($back);
         $gid = Guardian::create([
             'first_name' => $first, 'middle_name' => $this->input('middle_name'), 'last_name' => $last,
-            'name_suffix' => $this->input('name_suffix'), 'contact' => $this->input('contact'),
+            'name_suffix' => $this->input('name_suffix'), 'contact' => $this->input('contact'), 'email' => $email,
             'occupation' => $this->input('occupation'), 'photo' => $photo,
         ]);
         Guardian::link($id, $gid, $rel, 1);
@@ -141,6 +154,23 @@ class StudentsController extends Controller
             flash('success', 'Existing guardian linked (useful for siblings).');
         }
         $this->redirect(url('students/show/' . $id));
+    }
+
+    public function updateContact($linkId = 0)
+    {
+        $this->post();
+        $this->requireAdmin();
+        $link = Guardian::linkInfo($linkId) ?: $this->missing();
+        $g = Guardian::find($link['guardian_id']);
+        $email = $this->input('email');
+        if ($email !== '' && !Notifier::validEmail($email)) {
+            flash('error', 'The email address is not valid.');
+        } else {
+            Guardian::updateContact($link['guardian_id'], $this->input('contact'), $email);
+            Audit::record('GUARDIAN_CONTACT_UPDATED', 'guardian', (int)$link['guardian_id'], $g['full_name'] ?? '');
+            flash('success', 'Contact details saved.');
+        }
+        $this->redirect(url('students/show/' . $link['student_id']));
     }
 
     public function toggleGuardian($linkId = 0)
@@ -188,7 +218,8 @@ class StudentsController extends Controller
     public function card($id = 0)
     {
         $this->requireLogin();
-        $s = Student::find($id) ?: $this->missing();
+        $s = Student::find($id);
+        if (!$s || !Section::canSee($s['section_id'] ?? 0)) $this->missing();
         $this->view('students/cards', ['title' => 'ID card', 'active' => 'students', 'list' => [$s]]);
     }
 
@@ -214,7 +245,7 @@ class StudentsController extends Controller
         if ($d['first_name'] === '' || $d['last_name'] === '') $errors[] = 'First name and last name are required.';
         if ($d['section_id'] !== '' && !Section::find($d['section_id'])) $errors[] = 'Choose a section from the list.';
         if (!in_array($d['gender'], ['', 'female', 'male'], true)) $errors[] = 'Choose a valid gender option.';
-        if (!in_array($d['status'], ['enrolled', 'withdrawn', 'graduated'], true)) $errors[] = 'Choose a valid status.';
+        if (!in_array($d['status'], ['enrolled', 'withdrawn', 'graduated', 'archived'], true)) $errors[] = 'Choose a valid status.';
         if ($d['lrn'] !== '' && !preg_match('/^\d{6,20}$/', $d['lrn'])) $errors[] = 'LRN should contain digits only.';
         if ($d['date_of_birth'] !== '' && !strtotime($d['date_of_birth'])) $errors[] = 'Date of birth is not a valid date.';
         return [$d, $errors];

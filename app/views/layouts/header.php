@@ -13,7 +13,7 @@
 <div class="app">
   <aside class="sidebar">
     <div class="brand">
-      <div class="brand-logo"><?= icon('shield', 24) ?></div>
+      <div class="brand-logo<?= school_logo() ? " has-logo" : "" ?>"><?= brand_mark() ?></div>
       <div><strong><?= e(config('app_name')) ?></strong><small><?= e(config('school_name')) ?></small></div>
     </div>
     <nav aria-label="Main">
@@ -29,6 +29,7 @@
       <?php if (is_admin()): ?>
         <div class="nav-label">Administration</div>
         <a href="<?= url('sections') ?>" class="<?= $active === 'sections' ? 'on' : '' ?>"><?= icon('layers') ?>Sections</a>
+        <a href="<?= url('schedule') ?>" class="<?= $active === 'schedule' ? 'on' : '' ?>"><?= icon('clock') ?>Schedules</a>
         <a href="<?= url('notifications') ?>" class="<?= $active === 'messages' ? 'on' : '' ?>"><?= icon('phone') ?>Messages</a>
         <a href="<?= url('staff') ?>"    class="<?= $active === 'staff' ? 'on' : '' ?>"><?= icon('users') ?>Staff accounts</a>
         <a href="<?= url('logs/audit') ?>" class="<?= $active === 'audit' ? 'on' : '' ?>"><?= icon('clock') ?>Audit trail</a>
@@ -46,9 +47,11 @@
     </div>
   </aside>
   <main class="main"><div class="wrap">
-    <?php if (demo()): ?><div class="proto-bar">Prototype with sample data. Do not enter real student information.</div><?php endif; ?>
 <?php else: ?>
 <main class="auth-wrap">
+<?php endif; ?>
+<?php if ($user && is_teacher() && Section::mineIds() === [] && in_array($active ?? '', ['students', 'attendance', 'logs', 'sheet'], true)): ?>
+  <div class="alert alert-error" role="status"><?= icon('alert', 20) ?><span>No classes are assigned to you yet. Ask the Vice Principal to add your schedule or make you a class adviser.</span></div>
 <?php endif; ?>
 <?php foreach (get_flash() as $f): ?>
   <div class="alert alert-<?= e($f['type']) ?>" role="status"><?= icon($f['type'] === 'success' ? 'check' : 'alert', 20) ?><span><?= e($f['msg']) ?></span></div>

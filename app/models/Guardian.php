@@ -11,9 +11,27 @@ class Guardian extends Model
     public static function create($d)
     {
         return self::insert(
-            'INSERT INTO guardians (first_name, middle_name, last_name, name_suffix, contact_number, occupation, photo_path) VALUES (?,?,?,?,?,?,?)',
-            [$d['first_name'], nn($d['middle_name']), $d['last_name'], nn($d['name_suffix']), nn($d['contact']), nn($d['occupation']), $d['photo'] ?? null]
+            'INSERT INTO guardians (first_name, middle_name, last_name, name_suffix, contact_number, email, occupation, photo_path) VALUES (?,?,?,?,?,?,?,?)',
+            [$d['first_name'], nn($d['middle_name']), $d['last_name'], nn($d['name_suffix']), nn($d['contact']), nn($d['email'] ?? null), nn($d['occupation']), $d['photo'] ?? null]
         );
+    }
+
+    public static function updateContact($id, $contact, $email)
+    {
+        self::run('UPDATE guardians SET contact_number = ?, email = ? WHERE guardian_id = ?', [nn($contact), nn($email), (int)$id]);
+    }
+
+    /** An already registered guardian (same email, or same name and phone), so a sibling's parent is linked, not duplicated. */
+    public static function findMatch($first, $last, $email, $contact)
+    {
+        if ($email !== '' && ($r = self::one('SELECT guardian_id FROM guardians WHERE email = ? LIMIT 1', [$email]))) return (int)$r['guardian_id'];
+        $digits = preg_replace('/\D+/', '', (string)$contact);
+        if ($digits !== '') {
+            foreach (self::all('SELECT guardian_id, contact_number FROM guardians WHERE first_name = ? AND last_name = ?', [$first, $last]) as $r) {
+                if (preg_replace('/\D+/', '', (string)$r['contact_number']) === $digits) return (int)$r['guardian_id'];
+            }
+        }
+        return null;
     }
 
     public static function link($studentId, $guardianId, $relationship, $authorized = 1)

@@ -2,6 +2,7 @@
   <div><h1>Students</h1><p class="sub"><?= count($students) ?> registered</p></div>
   <?php if (is_admin()): ?>
   <div class="row-gap wrap">
+    <a class="btn btn-ghost" href="<?= url('import') ?>"><?= icon('plus', 18) ?>Import CSV</a>
     <a class="btn btn-ghost" href="<?= url('students/cards') ?>"><?= icon('printer', 18) ?>Print all ID cards</a>
     <a class="btn btn-primary" href="<?= url('students/create') ?>"><?= icon('plus', 18) ?>Register student</a>
   </div>
@@ -11,6 +12,9 @@
 <form method="get" action="<?= e(base_path()) ?>/index.php" class="filters card">
   <input type="hidden" name="url" value="students">
   <label class="grow">Search by name or LRN <input name="q" value="<?= e($q) ?>" placeholder="For example: Reyes"></label>
+  <?php if (is_admin()): ?>
+  <label class="check"><input type="checkbox" name="archived" value="1" <?= $showArchived ? 'checked' : '' ?>> Show archived</label>
+  <?php endif; ?>
   <button class="btn btn-primary"><?= icon('search', 18) ?>Search</button>
 </form>
 

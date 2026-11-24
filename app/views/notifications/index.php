@@ -1,6 +1,6 @@
 <div class="page-head">
   <div><h1>Messages to parents</h1>
-    <p class="sub">A text message goes to a child's authorized guardians when the child arrives and when the child is picked up.</p></div>
+    <p class="sub"><?= in_array('email', $channels, true) ? 'An email' : 'A text message' ?> goes to a child's authorized guardians when the child arrives and when the child is picked up.</p></div>
   <?php if ($retryable): ?>
   <form method="post" action="<?= url('notifications/retry') ?>"><?= csrf_field() ?>
     <button class="btn btn-ghost"><?= icon('refresh', 18) ?>Send <?= (int)$retryable ?> unsent again</button></form>
@@ -9,13 +9,13 @@
 
 <?php if (!$enabled): ?>
   <div class="alert alert-warning"><?= icon('alert', 20) ?><span>Messages are switched off in the configuration, so none are created.</span></div>
-<?php elseif ($driver !== 'semaphore'): ?>
-  <div class="alert alert-info"><?= icon('alert', 20) ?><span><b>Messages are simulated.</b> They are listed here as they would be sent, but nothing leaves the system. To send real texts, connect an SMS service in the configuration.</span></div>
+<?php elseif (!$live): ?>
+  <div class="alert alert-info"><?= icon('alert', 20) ?><span><b>Messages are simulated.</b> They are listed here as they would be sent, but nothing leaves the system. To send real emails, set the Gmail details in <code>config/config.local.php</code>.</span></div>
 <?php endif; ?>
 
 <section class="card glance" style="margin-bottom:18px">
   <div class="glance-grid" style="grid-template-columns:repeat(3,1fr)">
-    <div class="n-green"><b><?= $counts['sent'] + $counts['simulated'] ?></b><span>Delivered<?= $driver !== 'semaphore' ? ' (simulated)' : '' ?> on this date</span></div>
+    <div class="n-green"><b><?= $counts['sent'] + $counts['simulated'] ?></b><span>Delivered<?= !$live ? ' (simulated)' : '' ?> on this date</span></div>
     <div class="n-amber"><b><?= $counts['queued'] ?></b><span>Waiting to be sent</span></div>
     <div class="n-red"><b><?= $counts['failed'] ?></b><span>Not sent</span></div>
   </div>

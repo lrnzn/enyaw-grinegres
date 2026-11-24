@@ -6,7 +6,7 @@
  */
 return [
     'app_name'    => 'SGVMS',
-    'school_name' => 'Greenacres Elementary Christian School',
+    'school_name' => 'Green Acres Christian School',
     'timezone'    => 'Asia/Manila',
 
     // true  = demo mode: sample-data banner, demo login hints, "Reset demo logs" button.
@@ -28,6 +28,20 @@ return [
     // Messages to parents when their child arrives and when their child is picked up.
     'notifications' => [
         'enabled' => true,
+        // Which channels are used. 'email' (free, Gmail/SMTP) and/or 'sms' (paid, see 'driver' below).
+        'channels' => ['email'],
+        // Email through any SMTP server. 'log' = simulate (nothing is sent); 'smtp' = send for real.
+        'email' => [
+            'driver'      => 'log',
+            'host'        => 'smtp.gmail.com',
+            'port'        => 587,
+            'encryption'  => 'tls',                   // 'tls' = STARTTLS (port 587), 'ssl' = implicit TLS (port 465), 'none' = test servers only
+            'username'    => '',                      // for Gmail: the full Gmail address
+            'password'    => '',                      // for Gmail: a 16-character App Password, never the normal password. Set it in config.local.php
+            'from_email'  => '',                      // empty = the username
+            'from_name'   => '',                      // empty = the school name
+            'verify_peer' => true,
+        ],
         // 'log'       = simulate: messages are listed on the Messages page but NOTHING is sent (good for demos)
         // 'semaphore' = send real SMS through semaphore.co (needs an account and an API key; each SMS costs a credit)
         'driver'  => 'log',
@@ -36,7 +50,7 @@ return [
             'sender_name' => '',                      // optional approved sender name; empty = Semaphore's default
             'url'         => 'https://api.semaphore.co/api/v4/messages',
         ],
-        'timeout_seconds' => 4,                       // the gate never waits longer than this for the SMS service
+        'timeout_seconds' => 6,                       // the gate never waits longer than this for the SMS/email service
     ],
 
     // Pickup by someone who is not a registered guardian.

@@ -7,9 +7,15 @@
     <a class="btn btn-ghost" href="<?= url('students/card/' . $s['id']) ?>"><?= icon('printer', 18) ?>ID card and QR</a>
     <?php if (is_admin()): ?>
       <a class="btn btn-ghost" href="<?= url('students/edit/' . $s['id']) ?>"><?= icon('edit', 18) ?>Edit</a>
-      <form method="post" action="<?= url('students/delete/' . $s['id']) ?>" data-confirm="Remove this student and unlink all guardians?">
-        <?= csrf_field() ?><button class="btn btn-danger-ghost"><?= icon('trash', 18) ?>Delete</button>
+      <?php if ($s['status'] === 'archived'): ?>
+      <form method="post" action="<?= url('students/restore/' . $s['id']) ?>">
+        <?= csrf_field() ?><button class="btn btn-primary"><?= icon('refresh', 18) ?>Restore student</button>
       </form>
+      <?php else: ?>
+      <form method="post" action="<?= url('students/archive/' . $s['id']) ?>" data-confirm="Archive this student? All records are kept, and you can restore the student later.">
+        <?= csrf_field() ?><button class="btn btn-danger-ghost"><?= icon('trash', 18) ?>Archive</button>
+      </form>
+      <?php endif; ?>
     <?php endif; ?>
   </div>
 </div>
@@ -46,10 +52,10 @@
           <div class="g-info">
             <strong><?= e($g['full_name']) ?></strong>
             <small><?= e($g['relationship']) ?><?= $g['occupation'] ? ', ' . e($g['occupation']) : '' ?></small>
-            <?php if (is_admin()): ?><small><?= icon('phone', 14) ?> <?= e($g['contact'] ?: '—') ?></small><?php endif; ?>
+            <?php if (is_admin()): ?><small><?= icon('phone', 14) ?> <?= e($g['contact'] ?: '—') ?></small><small><?= icon('letter', 14) ?> <?= e($g['email'] ?: '—') ?></small><?php endif; ?>
             <span class="badge <?= $g['is_authorized'] ? 'b-green' : 'b-red' ?>"><?= $g['is_authorized'] ? 'Authorized' : 'Not authorized' ?></span>
             <?php if (is_admin() && $g['is_authorized']): ?>
-              <small class="muted"><?php if (!$g['receive_notifications']): ?>Messages are off<?php elseif (!Notifier::normalizePhone($g['contact'])): ?>No valid mobile number, so no messages can be sent<?php else: ?>Gets a message at drop-off and pickup<?php endif; ?></small>
+              <small class="muted"><?php if (!$g['receive_notifications']): ?>Messages are off<?php elseif (!Notifier::reachable($g)): ?><?= e(Notifier::missingText()) ?>, so no messages can be sent<?php else: ?>Gets a message at drop-off and pickup<?php endif; ?></small>
             <?php endif; ?>
           </div>
           <?php if (is_admin()): ?>
@@ -62,6 +68,13 @@
             <?php endif; ?>
             <form method="post" action="<?= url('students/removeGuardian/' . $g['link_id']) ?>" data-confirm="Unlink this guardian?"><?= csrf_field() ?>
               <button class="btn btn-danger-ghost btn-sm">Unlink</button></form>
+            <details class="g-edit"><summary class="btn btn-ghost btn-sm">Edit contact</summary>
+              <form method="post" action="<?= url('students/updateContact/' . $g['link_id']) ?>"><?= csrf_field() ?>
+                <label>Email <input type="email" name="email" value="<?= e($g['email'] ?? '') ?>" placeholder="parent@example.com"></label>
+                <label>Contact number <input name="contact" value="<?= e($g['contact'] ?? '') ?>" placeholder="09xx xxx xxxx"></label>
+                <button class="btn btn-primary btn-sm">Save</button>
+              </form>
+            </details>
           </div>
           <?php endif; ?>
         </div>
@@ -79,6 +92,7 @@
         <label>Last name * <input name="last_name" required></label>
         <label>Suffix <input name="name_suffix" maxlength="10"></label>
         <label>Relationship * <input name="relationship" placeholder="Mother, father, aunt…" required></label>
+        <label>Email (for arrival and pickup messages) <input type="email" name="email" placeholder="parent@example.com"></label>
         <label>Contact number <input name="contact" placeholder="09xx xxx xxxx"></label>
         <label class="span2">Occupation <input name="occupation"></label>
         <label class="span2">Guardian photo (a clear face, up to 5 MB)

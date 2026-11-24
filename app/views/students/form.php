@@ -35,7 +35,7 @@
   <?php if ($isEdit): ?>
   <label>Status
     <select name="status">
-      <?php foreach (['enrolled' => 'Enrolled', 'withdrawn' => 'Withdrawn', 'graduated' => 'Graduated'] as $k => $v): ?>
+      <?php foreach (['enrolled' => 'Enrolled', 'withdrawn' => 'Withdrawn', 'graduated' => 'Graduated', 'archived' => 'Archived'] as $k => $v): ?>
         <option value="<?= $k ?>" <?= ($s['status'] ?? '') === $k ? 'selected' : '' ?>><?= $v ?></option>
       <?php endforeach; ?>
     </select>
