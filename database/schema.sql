@@ -1,17 +1,20 @@
 -- ============================================================================
--- SGVMS — Student Security & Guardian Verification Management System
--- Database schema, VERSION 2.1 (matches SGVMS-ERD-v2.1). MySQL 5.7+ / MariaDB 10.3+
+-- SGVMS - Student Security & Guardian Verification Management System
+-- FRESH DATABASE SCHEMA, version 2.3. Works on MySQL 5.7+ and MariaDB 10.3+.
 --
--- NEW INSTALL:  import this file with phpMyAdmin (Import tab), or:  mysql -u root -p < schema.sql
--- UPGRADING? Version 1: use migrate_v1_to_v2.sql. Version 2: use migrate_v2_to_v2_1.sql. Both keep your data.
+-- HOW TO INSTALL (phpMyAdmin, including InfinityFree):
+--   1. Create an empty database in your hosting panel (or use the one you were given).
+--   2. In phpMyAdmin, CLICK THAT DATABASE'S NAME in the left list, so it is the selected one.
+--   3. Open the Import tab, choose this file, and click Import.
+--   4. Optional demo only: import sample_data.sql the same way.
 --
--- This file creates the database AND the tables. It has NO users and NO student data:
--- load sample_data.sql for a demo, or create_admin.php for a real administrator.
+-- This file does NOT create a database and does NOT say which one to use, so it works with any
+-- database name (hosting providers choose names like if0_12345_sgvms). It is for a NEW, EMPTY database.
+-- It has no users and no students: use create_admin.php for a real administrator, or sample_data.sql for a demo.
 -- ============================================================================
 
-CREATE DATABASE IF NOT EXISTS `sgvms` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-USE `sgvms`;
 SET NAMES utf8mb4;
+SET FOREIGN_KEY_CHECKS = 0;
 
 -- System accounts (administrators, teachers, gate staff)
 CREATE TABLE IF NOT EXISTS `users` (
@@ -74,7 +77,7 @@ CREATE TABLE IF NOT EXISTS `students` (
   `date_of_birth` DATE NULL,
   `address`       VARCHAR(255) NULL,
   `photo_path`    VARCHAR(120) NULL,
-  `status`        ENUM('enrolled','withdrawn','graduated') NOT NULL DEFAULT 'enrolled',
+  `status`        ENUM('enrolled','withdrawn','graduated','archived') NOT NULL DEFAULT 'enrolled',
   `created_at`    DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at`    DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`student_id`),
@@ -214,6 +217,60 @@ CREATE TABLE IF NOT EXISTS `attendance` (
   CONSTRAINT `fk_att_user`    FOREIGN KEY (`recorded_by`) REFERENCES `users` (`user_id`) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- Bell schedule: the time slots of the school day (edited in the app, nothing is fixed)
+CREATE TABLE IF NOT EXISTS `periods` (
+  `period_id`  INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `name`       VARCHAR(40) NOT NULL,
+  `start_time` TIME NOT NULL,
+  `end_time`   TIME NOT NULL,
+  PRIMARY KEY (`period_id`),
+  UNIQUE KEY `uq_period_name` (`name`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `subjects` (
+  `subject_id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `name`       VARCHAR(80) NOT NULL,
+  PRIMARY KEY (`subject_id`),
+  UNIQUE KEY `uq_subject_name` (`name`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Who teaches what to which section, on which day and period (day_of_week: 1 = Monday ... 7 = Sunday)
+CREATE TABLE IF NOT EXISTS `class_schedules` (
+  `schedule_id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `section_id`  INT UNSIGNED NOT NULL,
+  `subject_id`  INT UNSIGNED NOT NULL,
+  `teacher_id`  INT UNSIGNED NOT NULL,
+  `period_id`   INT UNSIGNED NOT NULL,
+  `day_of_week` TINYINT UNSIGNED NOT NULL,
+  `created_at`  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`schedule_id`),
+  UNIQUE KEY `uq_sched_section` (`section_id`, `day_of_week`, `period_id`),
+  UNIQUE KEY `uq_sched_teacher` (`teacher_id`, `day_of_week`, `period_id`),
+  CONSTRAINT `fk_cs_section` FOREIGN KEY (`section_id`) REFERENCES `sections` (`section_id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_cs_subject` FOREIGN KEY (`subject_id`) REFERENCES `subjects` (`subject_id`) ON DELETE RESTRICT,
+  CONSTRAINT `fk_cs_teacher` FOREIGN KEY (`teacher_id`) REFERENCES `teachers` (`teacher_id`) ON DELETE RESTRICT,
+  CONSTRAINT `fk_cs_period`  FOREIGN KEY (`period_id`)  REFERENCES `periods` (`period_id`)  ON DELETE RESTRICT
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Attendance per class period. A schedule that has records can never be deleted (RESTRICT), so history is safe.
+CREATE TABLE IF NOT EXISTS `period_attendance` (
+  `pa_id`           INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `schedule_id`     INT UNSIGNED NOT NULL,
+  `student_id`      INT UNSIGNED NOT NULL,
+  `attendance_date` DATE NOT NULL,
+  `status`          ENUM('present','late','absent','excused','no_class') NOT NULL,
+  `remarks`         VARCHAR(255) NULL,
+  `recorded_by`     INT UNSIGNED NULL,
+  `created_at`      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at`      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`pa_id`),
+  UNIQUE KEY `uq_period_att` (`schedule_id`, `student_id`, `attendance_date`),
+  KEY `idx_pa_date` (`attendance_date`),
+  CONSTRAINT `fk_pa_schedule` FOREIGN KEY (`schedule_id`) REFERENCES `class_schedules` (`schedule_id`) ON DELETE RESTRICT,
+  CONSTRAINT `fk_pa_student`  FOREIGN KEY (`student_id`)  REFERENCES `students` (`student_id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_pa_user`     FOREIGN KEY (`recorded_by`) REFERENCES `users` (`user_id`) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- Every sign-in attempt (also used to slow down password guessing)
 CREATE TABLE IF NOT EXISTS `login_logs` (
   `login_log_id`   INT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -242,3 +299,5 @@ CREATE TABLE IF NOT EXISTS `audit_logs` (
   KEY `idx_audit_time` (`created_at`),
   CONSTRAINT `fk_al_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+SET FOREIGN_KEY_CHECKS = 1;
