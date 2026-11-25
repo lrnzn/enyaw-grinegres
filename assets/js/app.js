@@ -17,7 +17,9 @@
   // "Mark all present" on the attendance pages
   document.querySelectorAll('[data-mark-all]').forEach(function (btn) {
     btn.addEventListener('click', function () {
-      document.querySelectorAll('select.status-select').forEach(function (s) { s.value = btn.getAttribute('data-mark-all'); });
+      var v = btn.getAttribute('data-mark-all');
+      document.querySelectorAll('select.status-select').forEach(function (s) { s.value = v; });
+      document.querySelectorAll('.tap input[type=radio][value="' + v + '"]').forEach(function (r) { r.checked = true; });
     });
   });
 
@@ -86,6 +88,41 @@
   // Print button
   document.querySelectorAll('[data-print]').forEach(function (b) {
     b.addEventListener('click', function () { window.print(); });
+  });
+
+  // Phone menu: slide-in navigation
+  var sb = document.getElementById('sidebar'), mb = document.querySelector('[data-menu]'), bd = document.querySelector('[data-menu-close]');
+  function menu(open) {
+    if (!sb) return;
+    sb.classList.toggle('open', open);
+    if (bd) bd.classList.toggle('show', open);
+    if (mb) mb.setAttribute('aria-expanded', open ? 'true' : 'false');
+  }
+  if (mb) mb.addEventListener('click', function () { menu(!sb.classList.contains('open')); });
+  if (bd) bd.addEventListener('click', function () { menu(false); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') menu(false); });
+  if (sb) sb.querySelectorAll('nav a').forEach(function (a) { a.addEventListener('click', function () { menu(false); }); });
+
+  // Show / hide password
+  document.querySelectorAll('[data-toggle-password]').forEach(function (b) {
+    b.addEventListener('click', function () {
+      var i = b.parentNode.querySelector('input');
+      var show = i.type === 'password';
+      i.type = show ? 'text' : 'password';
+      b.textContent = show ? 'Hide' : 'Show';
+    });
+  });
+
+  // Messages: on the login page they float; success and info messages disappear after 4 seconds
+  var onLogin = !!document.querySelector('.auth-wrap');
+  document.querySelectorAll('.alert[data-flash]').forEach(function (a) {
+    if (onLogin) a.classList.add('toast');
+    if (a.classList.contains('alert-success') || a.classList.contains('alert-info')) {
+      setTimeout(function () {
+        a.classList.add('fade-out');
+        setTimeout(function () { if (a.parentNode) a.parentNode.removeChild(a); }, 450);
+      }, 4000);
+    }
   });
 
   // Auto-return to gate screen after a successful action

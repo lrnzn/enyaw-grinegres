@@ -29,7 +29,8 @@
         <td><?= $s['section'] ? e($s['grade']) . ', ' . e($s['section']) : '<span class="muted">No section</span>' ?></td>
         <td><?= e($s['lrn'] ?: '—') ?></td>
         <td><?= $s['status'] === 'enrolled' ? state_badge($st) : '<span class="badge b-gray">' . e(ucfirst($s['status'])) . '</span>' ?></td>
-        <td class="right"><a class="btn btn-ghost btn-sm" href="<?= url('students/show/' . $s['id']) ?>">Open</a></td>
+        <td class="right"><a class="btn btn-ghost btn-sm" href="<?= url('students/show/' . $s['id']) ?>">Open</a>
+          <?php if (is_admin()): ?><a class="btn btn-primary btn-sm" href="<?= url('students/edit/' . $s['id']) ?>">Edit</a><?php endif; ?></td>
       </tr>
     <?php endforeach; ?>
     <?php if (!$students): ?><tr><td colspan="6" class="muted center">No students match your search.</td></tr><?php endif; ?>

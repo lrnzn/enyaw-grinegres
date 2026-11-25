@@ -4,9 +4,11 @@
     <h1><?= e($s['full_name']) ?></h1>
   </div>
   <div class="row-gap wrap">
+    <?php if (is_admin()): ?>
+      <a class="btn btn-primary" href="<?= url('students/edit/' . $s['id']) ?>"><?= icon('edit', 18) ?>Edit student</a>
+    <?php endif; ?>
     <a class="btn btn-ghost" href="<?= url('students/card/' . $s['id']) ?>"><?= icon('printer', 18) ?>ID card and QR</a>
     <?php if (is_admin()): ?>
-      <a class="btn btn-ghost" href="<?= url('students/edit/' . $s['id']) ?>"><?= icon('edit', 18) ?>Edit</a>
       <?php if ($s['status'] === 'archived'): ?>
       <form method="post" action="<?= url('students/restore/' . $s['id']) ?>">
         <?= csrf_field() ?><button class="btn btn-primary"><?= icon('refresh', 18) ?>Restore student</button>

@@ -42,7 +42,18 @@ class AttendanceController extends Controller
         $this->requireRole(['teacher']);
         [$min, $max] = $this->limits();
         $date = $this->clamp($this->validDate($_GET['date'] ?? null, date('Y-m-d')), $min, $max);
-        $classes = Schedule::forDay((int)date('N', strtotime($date)), $this->teacherId());
+        $dayClasses = Schedule::forDay((int)date('N', strtotime($date)), $this->teacherId());
+
+        $secList = [];   // the sections that have a class on this day
+        foreach ($dayClasses as $c) $secList[(int)$c['section_id']] = $c['grade'] . ', ' . $c['section'];
+        $wantedSection = (int)($_GET['section'] ?? 0);
+        $classId = (int)($_GET['class'] ?? 0);
+        if (!isset($secList[$wantedSection])) {   // a class link without a section: use that class's section, else the first
+            $wantedSection = 0;
+            foreach ($dayClasses as $c) if ((int)$c['id'] === $classId) $wantedSection = (int)$c['section_id'];
+            if (!$wantedSection && $dayClasses) $wantedSection = (int)$this->autoClass($dayClasses, $date)['section_id'];
+        }
+        $classes = array_values(array_filter($dayClasses, function ($c) use ($wantedSection) { return (int)$c['section_id'] === $wantedSection; }));
 
         $current = null;
         $wanted = (int)($_GET['class'] ?? 0);
@@ -50,7 +61,12 @@ class AttendanceController extends Controller
         if (!$current && $classes) $current = $this->autoClass($classes, $date);   // "Show class" happens by itself
 
         [$weekFrom, $weekTo] = $this->week($date);
+        $prev = date('Y-m-d', strtotime($date . ' -1 day'));
+        $next = date('Y-m-d', strtotime($date . ' +1 day'));
+        if (($min && $prev < $min)) $prev = null;
+        if (($max && $next > $max)) $next = null;
         $this->view('attendance/index', [
+            'secList' => $secList, 'sectionId' => $wantedSection, 'prev' => $prev, 'next' => $next,
             'title' => 'Attendance', 'active' => 'attendance', 'date' => $date, 'min' => $min, 'max' => $max,
             'classes' => $classes, 'current' => $current,
             'rows' => $current ? PeriodAttendance::rows($current['id'], $current['section_id'], $date) : [],
@@ -79,7 +95,7 @@ class AttendanceController extends Controller
         $asked = $this->validDate($_POST['date'] ?? null, date('Y-m-d'));
         $date = $this->clamp($asked, $min, $max);
         $cls = Schedule::find((int)($_POST['class'] ?? 0));
-        $back = url('attendance') . '&date=' . urlencode($date) . '&class=' . (int)($_POST['class'] ?? 0);
+        $back = url('attendance') . '&date=' . urlencode($date) . '&class=' . (int)($_POST['class'] ?? 0) . '&section=' . (int)($cls['section_id'] ?? 0);
         if ($date !== $asked) { flash('error', 'Teachers can only record today and earlier days of this week.'); $this->redirect($back); }
 
         $teacherId = $this->teacherId();

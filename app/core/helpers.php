@@ -15,7 +15,22 @@ function base_path() {
     return $b;
 }
 function url($path = '') { return base_path() . '/index.php?url=' . ltrim($path, '/'); }
-function asset($path)    { return base_path() . '/' . ltrim($path, '/'); }
+function asset($path)
+{
+    $path = ltrim($path, '/');
+    $file = dirname(__DIR__, 2) . '/' . $path;
+    // ?v= changes whenever the file changes, so browsers never keep an old stylesheet or script
+    return base_path() . '/' . $path . (is_file($file) ? '?v=' . filemtime($file) : '');
+}
+
+/** URL of the login page photo (assets/img/login-bg.jpg, .jpeg, .png or .webp), or null when none was added. */
+function login_bg()
+{
+    foreach (['jpg', 'jpeg', 'png', 'webp'] as $ext) {
+        if (is_file(ROOT . "/assets/img/login-bg.$ext")) return asset("assets/img/login-bg.$ext");
+    }
+    return null;
+}
 
 /** URL of the school logo (assets/img/logo.png, .jpg, .webp or .svg), or null when none was uploaded yet. */
 function school_logo()
@@ -24,7 +39,7 @@ function school_logo()
     if ($url === false) {
         $url = null;
         foreach (['png', 'jpg', 'webp', 'svg'] as $ext) {
-            if (is_file(ROOT . "/assets/img/logo.$ext")) { $url = asset("assets/img/logo.$ext") . '?v=' . filemtime(ROOT . "/assets/img/logo.$ext"); break; }
+            if (is_file(ROOT . "/assets/img/logo.$ext")) { $url = asset("assets/img/logo.$ext"); break; }
         }
     }
     return $url;

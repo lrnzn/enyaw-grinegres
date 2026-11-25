@@ -9,19 +9,41 @@
     <?php if (is_admin()): ?><a href="<?= url('schedule') ?>">Set up schedules</a> first.<?php else: ?>Ask the administrator to set up the schedules.<?php endif; ?></span></div>
 <?php endif; ?>
 
-<form method="get" action="<?= e(base_path()) ?>/index.php" class="filters card">
-  <input type="hidden" name="url" value="attendance">
-  <label>Date <input type="date" name="date" value="<?= e($date) ?>" <?= $min ? 'min="' . e($min) . '"' : '' ?> <?= $max ? 'max="' . e($max) . '"' : '' ?> data-autosubmit></label>
-  <label class="grow">Class
-    <select name="class" data-autosubmit <?= $classes ? '' : 'disabled' ?>>
-      <?php foreach ($classes as $c): ?>
-        <option value="<?= (int)$c['id'] ?>" <?= $current && (int)$current['id'] === (int)$c['id'] ? 'selected' : '' ?>><?= e(Schedule::label($c, is_admin())) ?></option>
+<section class="card pick">
+  <div class="pick-row">
+    <span class="pick-label">1. Date</span>
+    <div class="date-nav">
+      <?php if ($prev): ?><a class="btn btn-ghost btn-sm" href="<?= url('attendance') ?>&date=<?= e($prev) ?>">‹ Previous day</a><?php endif; ?>
+      <form method="get" action="<?= e(base_path()) ?>/index.php">
+        <input type="hidden" name="url" value="attendance">
+        <input type="date" name="date" value="<?= e($date) ?>" <?= $min ? 'min="' . e($min) . '"' : '' ?> <?= $max ? 'max="' . e($max) . '"' : '' ?> data-autosubmit>
+      </form>
+      <?php if ($date !== date('Y-m-d')): ?><a class="btn btn-ghost btn-sm" href="<?= url('attendance') ?>">Today</a><?php endif; ?>
+      <?php if ($next): ?><a class="btn btn-ghost btn-sm" href="<?= url('attendance') ?>&date=<?= e($next) ?>">Next day ›</a><?php endif; ?>
+      <span class="muted"><?= e(date('l, F j', strtotime($date))) ?></span>
+    </div>
+  </div>
+  <div class="pick-row">
+    <span class="pick-label">2. Section</span>
+    <div class="chips">
+      <?php foreach ($secList as $sid => $lbl): ?>
+        <a class="chip <?= (int)$sid === (int)$sectionId ? 'on' : '' ?>" href="<?= url('attendance') ?>&date=<?= e($date) ?>&section=<?= (int)$sid ?>"><?= e($lbl) ?></a>
       <?php endforeach; ?>
-      <?php if (!$classes): ?><option>No classes on this day</option><?php endif; ?>
-    </select></label>
-  <noscript><button class="btn btn-primary">Show class</button></noscript>
-</form>
-<?php if (is_teacher()): ?><p class="muted small" style="margin:-8px 0 14px">Teachers can record today and earlier days of this week.</p><?php endif; ?>
+      <?php if (!$secList): ?><span class="muted">No classes on this day</span><?php endif; ?>
+    </div>
+  </div>
+  <?php if ($classes): ?>
+  <div class="pick-row">
+    <span class="pick-label">3. Subject / period</span>
+    <div class="chips">
+      <?php foreach ($classes as $c): ?>
+        <a class="chip <?= $current && (int)$current['id'] === (int)$c['id'] ? 'on' : '' ?>" href="<?= url('attendance') ?>&date=<?= e($date) ?>&section=<?= (int)$sectionId ?>&class=<?= (int)$c['id'] ?>"><?= e($c['subject']) ?> <small><?= e($c['period']) ?> · <?= e($c['start_time']) ?></small></a>
+      <?php endforeach; ?>
+    </div>
+  </div>
+  <?php endif; ?>
+</section>
+<?php if (is_teacher()): ?><p class="muted small" style="margin:0 0 14px">Teachers can record today and earlier days of this week.</p><?php endif; ?>
 
 <?php if ($current): ?>
 <form method="post" action="<?= url('attendance/save') ?>">
@@ -38,13 +60,12 @@
           <td><strong><?= e($r['full_name']) ?></strong></td>
           <td><?= $r['daily_status'] ? e(ucfirst($r['daily_status'])) : '<span class="muted">—</span>' ?></td>
           <td>
-            <select class="status-select" name="status[<?= (int)$r['id'] ?>]">
-              <option value="">Not marked</option>
-              <?php foreach (PeriodAttendance::STATUSES as $k => $v): ?>
-                <option value="<?= $k ?>" <?= $sel === $k ? 'selected' : '' ?>><?= $v ?></option>
+            <div class="tap">
+              <?php foreach (['present' => 'Present', 'late' => 'Late', 'absent' => 'Absent', 'excused' => 'Excused'] as $k => $v): ?>
+                <label class="tap-<?= $k ?>"><input type="radio" name="status[<?= (int)$r['id'] ?>]" value="<?= $k ?>" <?= $sel === $k ? 'checked' : '' ?>><span><?= $v ?></span></label>
               <?php endforeach; ?>
-            </select>
-            <?php if ($r['status'] === null && $r['daily_status']): ?><small class="muted block">preselected</small><?php endif; ?>
+            </div>
+            <?php if ($r['status'] === null && $r['daily_status']): ?><small class="muted block">preselected from the gate</small><?php endif; ?>
           </td>
           <td><input class="remarks-input" name="remarks[<?= (int)$r['id'] ?>]" value="<?= e($r['remarks'] ?? '') ?>" maxlength="255" placeholder="Optional"></td>
         </tr>

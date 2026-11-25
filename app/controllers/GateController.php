@@ -11,7 +11,7 @@ class GateController extends Controller
 {
     private function mode()
     {
-        $m = $_GET['mode'] ?? $_POST['mode'] ?? 'out';
+        $m = $_GET['mode'] ?? $_POST['mode'] ?? (date('H') < 12 ? 'in' : 'out');   // mornings open on drop-off, afternoons on dismissal
         return $m === 'in' ? 'in' : 'out';
     }
 

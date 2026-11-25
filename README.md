@@ -143,3 +143,45 @@ Colors are CSS variables at the top of `assets/css/style.css`.
 - **Whole-day (gate) attendance belongs to the class adviser.** Teachers who advise a section see the Daily tab, the daily sheet, the daily export and the daily summary for that section only. Subject teachers use attendance by period and the "By subject" sheet. The administrator can still use everything.
 - **Teachers with no classes yet** see a notice asking them to contact the Vice Principal, so an empty page is never unexplained.
 
+## Version 2.9
+
+- **Register / edit student** is now two steps on one page: *1. Personal details* and *2. Grade and section* (section, LRN, status).
+- **Edit** is a green button at the top of the student page and on every row of the student list (admin).
+- **Attendance by period** is picked in three steps: date (with previous and next day), section, then subject/period. Marking uses one-tap Present / Late / Absent / Excused buttons.
+
+
+## Version 2.10
+
+- **Gate station:** the selected mode is a solid colour (blue for drop-off, orange for dismissal) with a SELECTED tag, and the scan box has a matching top border. The page opens on drop-off before noon and dismissal after noon.
+- **Release screen** returns to the gate after 5 seconds (was 12).
+
+## Version 2.11
+
+- **Schedules** now show a weekly timetable (periods down, Monday to Saturday across), coloured by subject. Click a **+** to add a class in that slot, or **×** to remove one.
+- Boxes have a soft 2px shadow; the coloured top border on the gate scan box is gone.
+
+## Version 2.12
+
+- **Login page** is larger. Messages such as "You have been signed out" float at the top, so the card stays centred.
+- **Success and info messages** (the green ones) disappear after 4 seconds everywhere. Errors and warnings stay until the page changes.
+
+## Version 2.13
+
+- Stylesheet and script links now carry a version number, so a browser always loads the latest files after an update (no more Ctrl+F5).
+
+## Version 2.14
+
+- **New login page:** full-screen split. The left side is the school panel (logo, tagline, four feature cards), and the right side is the sign-in card with a Show/Hide password button and a "forgot password" note.
+
+## Version 2.15
+
+- **Login photo:** save a photo as `assets/img/login-bg.jpg` and it replaces the green background on the left side, slightly blurred and darkened. Without a photo the green background stays.
+- Login fonts are now the same clean sans-serif as the rest of the system (no serif).
+
+## Version 2.16
+
+- Login page is split 60/40 (wider photo side) and the photo tint is slightly darker.
+
+## Version 2.17
+
+- **Phone navigation:** on phones and narrow windows, the menu is a green button at the top left that slides the full menu in from the side. Tap outside it, press Escape or pick a page to close it. Sign out is always at the bottom of the menu. Desktop is unchanged.

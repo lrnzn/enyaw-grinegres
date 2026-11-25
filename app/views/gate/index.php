@@ -4,12 +4,12 @@
 
 <div class="seg" role="tablist">
   <a class="<?= $mode === 'in' ? 'on' : '' ?>" href="<?= url('gate') ?>&mode=in">
-    <?= icon('sun', 28) ?><span>Morning drop-off<small>Record time-in</small></span></a>
+    <?= icon('sun', 28) ?><span>Morning drop-off<small>Record time-in</small></span><?php if ($mode === 'in'): ?><em class="seg-now">SELECTED</em><?php endif; ?></a>
   <a class="<?= $mode === 'out' ? 'on out' : '' ?>" href="<?= url('gate') ?>&mode=out">
-    <?= icon('home', 28) ?><span>Dismissal<small>Verify the guardian and release</small></span></a>
+    <?= icon('home', 28) ?><span>Dismissal<small>Verify the guardian and release</small></span><?php if ($mode === 'out'): ?><em class="seg-now">SELECTED</em><?php endif; ?></a>
 </div>
 
-<section class="card scan-card">
+<section class="card scan-card mode-<?= e($mode) ?>">
   <form method="get" action="<?= e(base_path()) ?>/index.php" id="scan-form">
     <input type="hidden" name="url" value="gate/lookup">
     <input type="hidden" name="mode" value="<?= e($mode) ?>">

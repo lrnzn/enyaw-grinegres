@@ -75,32 +75,49 @@
     <noscript><button class="btn btn-primary">Show</button></noscript>
   </form>
 
-  <div class="table-wrap" style="margin-top:14px"><table>
-    <thead><tr><th>Day</th><th>Period</th><th>Subject</th><th>Teacher</th><th></th></tr></thead>
+  <?php
+    $grid = [];
+    foreach ($classes as $c) $grid[(int)$c['period_id']][(int)$c['day_of_week']] = $c;
+    $secLabel = '';
+    foreach ($sections as $sec) if ((int)$sec['id'] === (int)$section) $secLabel = $sec['label'] . ' (' . $sec['school_year'] . ')';
+  ?>
+  <h4 style="margin:16px 0 0">Weekly timetable: <?= e($secLabel) ?></h4>
+  <?php if (!$periods): ?>
+    <p class="muted">Add the periods above first. They become the rows of the timetable.</p>
+  <?php else: ?>
+  <div class="tt-wrap"><table class="tt">
+    <thead><tr><th class="time">Time</th><?php foreach (Schedule::DAYS as $d => $dn): ?><th><?= e($dn) ?></th><?php endforeach; ?></tr></thead>
     <tbody>
-    <?php foreach ($classes as $c): ?>
+    <?php foreach ($periods as $p): ?>
       <tr>
-        <td><?= e(Schedule::DAYS[$c['day_of_week']] ?? '') ?></td>
-        <td><?= e($c['period']) ?> <small class="muted">(<?= e($c['start_time']) ?>-<?= e($c['end_time']) ?>)</small></td>
-        <td><?= e($c['subject']) ?></td>
-        <td><?= e($c['teacher']) ?></td>
-        <td>
-          <form method="post" action="<?= url('schedule/deleteClass/' . $c['id']) ?>" data-confirm="Remove this class from the schedule?"><?= csrf_field() ?>
-            <button class="btn btn-danger-ghost btn-sm">Remove</button></form>
-        </td>
+        <th class="time"><?= e($p['name']) ?><small><?= e($p['start_time']) ?> – <?= e($p['end_time']) ?></small></th>
+        <?php foreach (Schedule::DAYS as $d => $dn): $c = $grid[(int)$p['id']][$d] ?? null; ?>
+          <td>
+          <?php if ($c): ?>
+            <div class="slot c<?= (int)$c['subject_id'] % 8 ?>">
+              <b><?= e($c['subject']) ?></b><span><?= e($c['teacher']) ?></span>
+              <form method="post" action="<?= url('schedule/deleteClass/' . $c['id']) ?>" data-confirm="Remove <?= e($c['subject']) ?> on <?= e($dn) ?>, <?= e($p['name']) ?>?"><?= csrf_field() ?>
+                <button title="Remove this class" aria-label="Remove">&times;</button></form>
+            </div>
+          <?php else: ?>
+            <a class="empty" href="<?= url('schedule') ?>&section=<?= (int)$section ?>&day=<?= (int)$d ?>&period=<?= (int)$p['id'] ?>#add-class" title="Add a class on <?= e($dn) ?>, <?= e($p['name']) ?>">+</a>
+          <?php endif; ?>
+          </td>
+        <?php endforeach; ?>
       </tr>
     <?php endforeach; ?>
-    <?php if (!$classes): ?><tr><td colspan="5" class="muted center">No classes scheduled for this section yet.</td></tr><?php endif; ?>
     </tbody>
   </table></div>
+  <p class="muted small" style="margin-top:8px">Click a <strong>+</strong> to add a class in that slot. Click &times; on a class to remove it.</p>
+  <?php endif; ?>
 
   <?php if (!$periods || !$subjects || !$teachers): ?>
     <div class="alert alert-warning" style="margin-top:14px"><?= icon('alert', 20) ?><span>To add classes you need at least one period, one subject and one active teacher account (Administration &gt; Staff accounts).</span></div>
   <?php else: ?>
-  <form method="post" action="<?= url('schedule/addClass') ?>" class="inline-form" style="margin-top:14px"><?= csrf_field() ?>
+  <form method="post" action="<?= url('schedule/addClass') ?>" class="inline-form" id="add-class" style="margin-top:14px"><?= csrf_field() ?>
     <input type="hidden" name="section" value="<?= (int)$section ?>">
-    <label>Day <select name="day" required><?php foreach (Schedule::DAYS as $k => $v): ?><option value="<?= $k ?>"><?= $v ?></option><?php endforeach; ?></select></label>
-    <label>Period <select name="period" required><?php foreach ($periods as $p): ?><option value="<?= (int)$p['id'] ?>"><?= e($p['name']) ?> (<?= e($p['start_time']) ?>-<?= e($p['end_time']) ?>)</option><?php endforeach; ?></select></label>
+    <label>Day <select name="day" required><?php foreach (Schedule::DAYS as $k => $v): ?><option value="<?= $k ?>" <?= (int)($_GET['day'] ?? 0) === $k ? 'selected' : '' ?>><?= $v ?></option><?php endforeach; ?></select></label>
+    <label>Period <select name="period" required><?php foreach ($periods as $p): ?><option value="<?= (int)$p['id'] ?>" <?= (int)($_GET['period'] ?? 0) === (int)$p['id'] ? 'selected' : '' ?>><?= e($p['name']) ?> (<?= e($p['start_time']) ?>-<?= e($p['end_time']) ?>)</option><?php endforeach; ?></select></label>
     <label>Subject <select name="subject" required><?php foreach ($subjects as $s): ?><option value="<?= (int)$s['id'] ?>"><?= e($s['name']) ?></option><?php endforeach; ?></select></label>
     <label>Teacher <select name="teacher" required><?php foreach ($teachers as $t): ?><option value="<?= (int)$t['id'] ?>"><?= e($t['name']) ?></option><?php endforeach; ?></select></label>
     <button class="btn btn-primary">Add class</button>

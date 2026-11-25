@@ -9,7 +9,7 @@ $cfg = [
 ][$a];
 $next = url('gate') . '&mode=' . ($a === 'TIME_IN' ? 'in' : 'out');
 ?>
-<div class="result-card <?= $cfg[0] ?>" <?= $a !== 'DENIED' ? 'data-redirect-after="12" data-redirect-to="' . e($next) . '"' : '' ?>>
+<div class="result-card <?= $cfg[0] ?>" <?= $a !== 'DENIED' ? 'data-redirect-after="5" data-redirect-to="' . e($next) . '"' : '' ?>>
   <div class="result-icon"><?= icon($cfg[1], 46) ?></div>
   <h1><?= e($cfg[2]) ?></h1>
   <p class="lead"><?= e($cfg[3]) ?></p>
@@ -33,5 +33,5 @@ $next = url('gate') . '&mode=' . ($a === 'TIME_IN' ? 'in' : 'out');
     <a class="btn btn-primary btn-xl" href="<?= e($next) ?>">Next student<?= icon('forward', 22) ?></a>
     <a class="btn btn-ghost btn-lg" href="<?= url('logs') ?>">View logs</a>
   </div>
-  <?php if ($a !== 'DENIED'): ?><p class="muted small" data-countdown style="margin-top:16px">Returning to the gate screen automatically.</p><?php endif; ?>
+  <?php if ($a !== 'DENIED'): ?><p class="muted small" data-countdown style="margin-top:16px">Returning to the gate screen in 5 seconds.</p><?php endif; ?>
 </div>

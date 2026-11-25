@@ -11,7 +11,9 @@
 <body>
 <?php if ($user): ?>
 <div class="app">
-  <aside class="sidebar">
+  <button type="button" class="menu-btn" data-menu aria-label="Open menu" aria-controls="sidebar" aria-expanded="false"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+  <div class="backdrop" data-menu-close></div>
+  <aside class="sidebar" id="sidebar">
     <div class="brand">
       <div class="brand-logo<?= school_logo() ? " has-logo" : "" ?>"><?= brand_mark() ?></div>
       <div><strong><?= e(config('app_name')) ?></strong><small><?= e(config('school_name')) ?></small></div>
@@ -54,5 +56,5 @@
   <div class="alert alert-error" role="status"><?= icon('alert', 20) ?><span>No classes are assigned to you yet. Ask the Vice Principal to add your schedule or make you a class adviser.</span></div>
 <?php endif; ?>
 <?php foreach (get_flash() as $f): ?>
-  <div class="alert alert-<?= e($f['type']) ?>" role="status"><?= icon($f['type'] === 'success' ? 'check' : 'alert', 20) ?><span><?= e($f['msg']) ?></span></div>
+  <div class="alert alert-<?= e($f["type"]) ?>" role="status" data-flash><?= icon($f['type'] === 'success' ? 'check' : 'alert', 20) ?><span><?= e($f['msg']) ?></span></div>
 <?php endforeach; ?>
