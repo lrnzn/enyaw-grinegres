@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#14463A">
 <title><?= e($title) ?> · <?= e(config('app_name')) ?></title>
-<link rel="preload" href="<?= asset('assets/fonts/lexend-400.woff2') ?>" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="<?= e(base_path()) ?>/assets/fonts/lexend-400.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="<?= asset('assets/css/style.css') ?>">
 </head>
 <body>
@@ -55,6 +55,6 @@
 <?php if ($user && is_teacher() && Section::mineIds() === [] && in_array($active ?? '', ['students', 'attendance', 'logs', 'sheet'], true)): ?>
   <div class="alert alert-error" role="status"><?= icon('alert', 20) ?><span>No classes are assigned to you yet. Ask the Vice Principal to add your schedule or make you a class adviser.</span></div>
 <?php endif; ?>
-<?php foreach (get_flash() as $f): ?>
-  <div class="alert alert-<?= e($f["type"]) ?>" role="status" data-flash><?= icon($f['type'] === 'success' ? 'check' : 'alert', 20) ?><span><?= e($f['msg']) ?></span></div>
+<?php foreach (get_flash() as $fl): ?>
+  <div class="alert alert-<?= e($fl["type"]) ?>" role="status" data-flash><?= icon($fl['type'] === 'success' ? 'check' : 'alert', 20) ?><span><?= e($fl['msg']) ?></span></div>
 <?php endforeach; ?>

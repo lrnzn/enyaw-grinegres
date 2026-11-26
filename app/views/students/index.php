@@ -1,8 +1,8 @@
 <div class="page-head">
-  <div><h1>Students</h1><p class="sub"><?= count($students) ?> registered</p></div>
+  <div><h1>Students</h1><p class="sub"><?= count($students) ?><?= count($students) !== $total ? ' of ' . (int)$total : '' ?> students</p></div>
   <?php if (is_admin()): ?>
   <div class="row-gap wrap">
-    <a class="btn btn-ghost" href="<?= url('import') ?>"><?= icon('plus', 18) ?>Import CSV</a>
+    <a class="btn btn-ghost" href="<?= url('import') ?>"><?= icon('plus', 18) ?>Import from Excel</a>
     <a class="btn btn-ghost" href="<?= url('students/cards') ?>"><?= icon('printer', 18) ?>Print all ID cards</a>
     <a class="btn btn-primary" href="<?= url('students/create') ?>"><?= icon('plus', 18) ?>Register student</a>
   </div>
@@ -12,10 +12,20 @@
 <form method="get" action="<?= e(base_path()) ?>/index.php" class="filters card">
   <input type="hidden" name="url" value="students">
   <label class="grow">Search by name or LRN <input name="q" value="<?= e($q) ?>" placeholder="For example: Reyes"></label>
+  <label>Grade level
+    <select name="grade"><option value="">All grades</option>
+      <?php foreach ($grades as $g): ?><option <?= $f['grade'] === $g ? 'selected' : '' ?>><?= e($g) ?></option><?php endforeach; ?></select></label>
+  <label>Section
+    <select name="section"><option value="">All sections</option>
+      <?php if (is_admin()): ?><option value="none" <?= $f['section'] === 'none' ? 'selected' : '' ?>>No section</option><?php endif; ?>
+      <?php foreach ($sections as $sec): if ($f['grade'] && $sec['grade_level'] !== $f['grade']) continue; ?>
+        <option value="<?= (int)$sec['id'] ?>" <?= $f['section'] === (string)$sec['id'] ? 'selected' : '' ?>><?= e($sec['label']) ?><?= $manyYears ? ' (' . e($sec['school_year']) . ')' : '' ?></option>
+      <?php endforeach; ?></select></label>
   <?php if (is_admin()): ?>
   <label class="check"><input type="checkbox" name="archived" value="1" <?= $showArchived ? 'checked' : '' ?>> Show archived</label>
   <?php endif; ?>
-  <button class="btn btn-primary"><?= icon('search', 18) ?>Search</button>
+  <button class="btn btn-primary"><?= icon('search', 18) ?>Filter</button>
+  <?php if ($q !== '' || $f['grade'] || $f['section'] !== '' || $showArchived): ?><a class="btn btn-ghost" href="<?= url('students') ?>">Clear</a><?php endif; ?>
 </form>
 
 <div class="card table-wrap">

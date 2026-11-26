@@ -31,13 +31,18 @@ class Schedule extends Model
         return self::all($sql . ' ORDER BY p.start_time, sec.school_year DESC, LENGTH(sec.grade_level), sec.grade_level, sec.section_name', $p);
     }
 
-    /** A message when this slot is already taken, otherwise null. */
+    /** A message when the class would clash with another one. Periods that overlap in time count as a clash, even if they are different periods. */
     public static function conflict($sectionId, $teacherId, $day, $periodId)
     {
-        if (self::one('SELECT 1 AS x FROM class_schedules WHERE section_id = ? AND day_of_week = ? AND period_id = ?', [(int)$sectionId, (int)$day, (int)$periodId]))
-            return 'That section already has a class in this period on that day.';
-        if (self::one('SELECT 1 AS x FROM class_schedules WHERE teacher_id = ? AND day_of_week = ? AND period_id = ?', [(int)$teacherId, (int)$day, (int)$periodId]))
-            return 'That teacher already has a class in this period on that day.';
+        $per = self::one('SELECT start_time, end_time FROM periods WHERE period_id = ?', [(int)$periodId]);
+        if (!$per) return 'Choose a period.';
+        $sql = 'SELECT 1 AS x FROM class_schedules cs JOIN periods p ON p.period_id = cs.period_id
+                WHERE cs.day_of_week = ? AND p.start_time < ? AND p.end_time > ? AND ';
+        $t = [(int)$day, $per['end_time'], $per['start_time']];
+        if (self::one($sql . 'cs.section_id = ?', array_merge($t, [(int)$sectionId])))
+            return 'That section already has a class at this time on that day.';
+        if (self::one($sql . 'cs.teacher_id = ?', array_merge($t, [(int)$teacherId])))
+            return 'That teacher already has a class at this time on that day (another section\'s period overlaps).';
         return null;
     }
 

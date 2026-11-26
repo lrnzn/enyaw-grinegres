@@ -1,5 +1,5 @@
 <?php
-/** Admin: register many students (and their guardians) at once from a CSV file. Upload, check the preview, then confirm. */
+/** Admin: register many students (and their guardians) at once from an Excel (or CSV) file. Upload, check the preview, then confirm. */
 class ImportController extends Controller
 {
     private const MAX_ROWS = 1000;
@@ -13,20 +13,29 @@ class ImportController extends Controller
         $this->view('import/index', ['title' => 'Import students', 'active' => 'students', 'preview' => null, 'year' => Section::currentYear()]);
     }
 
-    /** A sample file the school can fill in. */
+    /** An Excel file the school fills in. Text columns keep leading zeros (phone numbers, LRN). */
     public function template()
     {
         $this->requireAdmin();
-        header('Content-Type: text/csv; charset=utf-8');
-        header('Content-Disposition: attachment; filename="sgvms-student-import-template.csv"');
-        $out = fopen('php://output', 'w');
-        fwrite($out, "\xEF\xBB\xBF");   // so Excel opens it as UTF-8
-        fputcsv($out, self::COLUMNS);
-        fputcsv($out, ['Juan', 'Santos', 'Dela Cruz', '', '', 'Grade 6', 'Sampaguita', '', 'male', '2014-05-20', 'Sample address',
-            'Maria', 'Dela Cruz', 'Mother', 'maria@example.com', '0917 123 4567', 'Pedro', 'Dela Cruz', 'Father', '', '']);
-        fputcsv($out, ['Ana', '', 'Reyes', '', '', 'Grade 7', 'Rizal', '', 'female', '2013-11-02', '',
-            'Carla', 'Reyes', 'Aunt', 'carla@example.com', '', '', '', '', '', '']);
-        fclose($out);
+        $text = [];
+        foreach (self::COLUMNS as $i => $c) if ($c !== 'birthdate') $text[] = $i;
+        $guide = [
+            ['Column', 'Needed?', 'What to type'],
+            ['first_name, last_name', 'Required', "The student's name."],
+            ['grade', 'Required', 'Kinder, Grade 1 ... Grade 10 (for example: Grade 6).'],
+            ['section', 'Required', 'The section name (for example: Sampaguita). Sections that do not exist yet are created.'],
+            ['middle_name, suffix', 'Optional', 'Suffix is Jr., III and so on.'],
+            ['lrn', 'Optional', 'The 12-digit LRN.'],
+            ['gender', 'Optional', 'male or female.'],
+            ['birthdate', 'Optional', 'A date, for example 2014-05-20 or 5/20/2014.'],
+            ['g1_ columns', 'Optional', 'First guardian: first name, last name, relationship (Mother, Father...), email and phone. The email is where arrival and pickup messages go.'],
+            ['g2_ columns', 'Optional', 'A second guardian, the same way.'],
+            ['', '', ''],
+            ['Example row', '', 'first_name Juan | middle_name Santos | last_name Dela Cruz | grade Grade 6 | section Sampaguita | gender male | birthdate 2014-05-20 | g1_first_name Maria | g1_last_name Dela Cruz | g1_relationship Mother | g1_email maria@example.com | g1_phone 0917 123 4567'],
+            ['', '', ''],
+            ['Important', '', 'Type students on the "Students" sheet, one row per student, starting under the headings. Do not change the headings. Nothing is saved until you check the preview and confirm.'],
+        ];
+        Xlsx::download('sgvms-student-import-template.xlsx', ['Students' => [self::COLUMNS], 'How to fill in' => $guide], ['text_cols' => [1 => $text]]);
     }
 
     /** Step 1: read the file and show what would happen. Nothing is saved yet. */
@@ -36,7 +45,7 @@ class ImportController extends Controller
         $this->requireAdmin();
         $f = $_FILES['file'] ?? null;
         if (!$f || $f['error'] !== UPLOAD_ERR_OK || !is_uploaded_file($f['tmp_name'])) {
-            flash('error', 'Choose a CSV file to upload.');
+            flash('error', 'Choose an Excel file to upload.');
             $this->redirect(url('import'));
         }
         if ($f['size'] > 2 * 1024 * 1024) { flash('error', 'The file must be 2 MB or smaller.'); $this->redirect(url('import')); }
@@ -99,34 +108,53 @@ class ImportController extends Controller
 
     /* ---------- reading and checking ---------- */
 
-    /** Returns [rows (each: line number + values by column name), error message or null]. */
+    /** Returns [rows (each: line number + values by column name), error message or null]. Reads .xlsx or .csv. */
     private function parse($raw)
+    {
+        try {
+            $table = substr($raw, 0, 2) === 'PK' ? XlsxReader::rows($raw, self::MAX_ROWS) : $this->csvTable($raw);
+        } catch (RuntimeException $e) {
+            return [[], $e->getMessage()];
+        }
+        if (!$table) return [[], 'The file is empty.'];
+        $lines = array_keys($table);
+        $header = $table[$lines[0]];
+        $cols = array_map([$this, 'columnName'], $header);
+        foreach (['first_name', 'last_name', 'grade', 'section'] as $need) {
+            if (!in_array($need, $cols, true)) return [[], "The file has no \"$need\" column. Download the template to see the expected columns."];
+        }
+        $rows = [];
+        foreach (array_slice($lines, 1) as $line) {
+            $cells = $table[$line];
+            if (!array_filter($cells, function ($c) { return trim((string)$c) !== ''; })) continue;   // blank row
+            if (count($rows) >= self::MAX_ROWS) return [[], 'The file has more than ' . self::MAX_ROWS . ' students. Split it into smaller files.'];
+            $v = [];
+            foreach ($cols as $i => $name) if ($name !== '' && !isset($v[$name])) $v[$name] = trim((string)($cells[$i] ?? ''));
+            if (isset($v['birthdate']) && preg_match('/^\d{4,6}$/', $v['birthdate']) && (int)$v['birthdate'] > 1000 && (int)$v['birthdate'] < 80000) {
+                $v['birthdate'] = date('Y-m-d', strtotime('1899-12-30 +' . (int)$v['birthdate'] . ' days'));   // Excel stores dates as numbers
+            }
+            foreach (['g1_phone', 'g2_phone'] as $ph) {   // Excel drops the leading zero of a number: 9171234567 -> 09171234567
+                if (isset($v[$ph]) && preg_match('/^9\d{9}$/', $v[$ph])) $v[$ph] = '0' . $v[$ph];
+            }
+            $rows[] = ['line' => $line, 'v' => $v];
+        }
+        if (!$rows) return [[], 'The file has no student rows.'];
+        return [$rows, null];
+    }
+
+    /** CSV text -> [line number => cells]. */
+    private function csvTable($raw)
     {
         $raw = preg_replace('/^\xEF\xBB\xBF/', '', $raw);
         if (!mb_check_encoding($raw, 'UTF-8')) $raw = mb_convert_encoding($raw, 'UTF-8', 'Windows-1252');
         $first = strtok($raw, "\r\n") ?: '';
         $delim = ',';
         foreach ([';', "\t"] as $d) if (substr_count($first, $d) > substr_count($first, $delim)) $delim = $d;
-
         $h = fopen('php://memory', 'w+'); fwrite($h, $raw); rewind($h);
-        $header = fgetcsv($h, 0, $delim);
-        if (!$header) return [[], 'The file is empty.'];
-        $cols = array_map([$this, 'columnName'], $header);
-        foreach (['first_name', 'last_name', 'grade', 'section'] as $need) {
-            if (!in_array($need, $cols, true)) return [[], "The file has no \"$need\" column. Download the template to see the expected columns."];
-        }
-        $rows = []; $line = 1;
-        while (($cells = fgetcsv($h, 0, $delim)) !== false) {
-            $line++;
-            if (count($cells) === 1 && trim((string)$cells[0]) === '') continue;   // blank line
-            if (count($rows) >= self::MAX_ROWS) return [[], 'The file has more than ' . self::MAX_ROWS . ' students. Split it into smaller files.'];
-            $v = [];
-            foreach ($cols as $i => $name) if ($name !== '' && !isset($v[$name])) $v[$name] = trim((string)($cells[$i] ?? ''));
-            $rows[] = ['line' => $line, 'v' => $v];
-        }
+        $table = []; $line = 0;
+        while (($cells = fgetcsv($h, 0, $delim)) !== false) { $line++; $table[$line] = $cells; }
         fclose($h);
-        if (!$rows) return [[], 'The file has no student rows.'];
-        return [$rows, null];
+        return $table;
     }
 
     private function columnName($h)

@@ -40,7 +40,10 @@ class GateController extends Controller
         $found = Student::search($q, true);
         if (count($found) === 1) $this->redirect(url('gate/verify/' . $found[0]['id']) . '&mode=' . $mode);
         if (!$found) {
-            flash('error', 'No enrolled student found for "' . $q . '". Try the QR code, LRN or name.');
+            // Anything that does not look like a name or LRN is a QR code from somewhere else (Wi-Fi, website...). Never show what it contains.
+            $isCode = stripos($q, 'STU-') === 0 || strlen($q) > 40 || preg_match('/[^\p{L}\p{N}\s.\'\-,]/u', $q);
+            flash('error', $isCode ? 'This QR code is not registered in the system.'
+                                   : 'No enrolled student found for "' . $q . '". Try the QR code, LRN or name.');
             $this->redirect(url('gate') . '&mode=' . $mode);
         }
         $this->view('gate/results', ['title' => 'Select student', 'active' => 'gate',

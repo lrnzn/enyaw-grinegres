@@ -83,7 +83,7 @@ class Section extends Model
         $mine = self::mineIds();
         if ($mine !== null && !$mine) return [];
         $where = $mine !== null ? ' WHERE section_id IN (' . implode(',', $mine) . ')' : '';
-        return self::all("SELECT section_id AS id, CONCAT(grade_level, ', ', section_name) AS label, school_year
+        return self::all("SELECT section_id AS id, CONCAT(grade_level, ', ', section_name) AS label, school_year, grade_level
                           FROM sections$where ORDER BY school_year DESC, LENGTH(grade_level), grade_level, section_name");
     }
 

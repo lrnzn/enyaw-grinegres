@@ -185,3 +185,19 @@ Colors are CSS variables at the top of `assets/css/style.css`.
 ## Version 2.17
 
 - **Phone navigation:** on phones and narrow windows, the menu is a green button at the top left that slides the full menu in from the side. Tap outside it, press Escape or pick a page to close it. Sign out is always at the bottom of the menu. Desktop is unchanged.
+
+## Version 2.20
+- Gate: scanning a QR code that does not belong to a student (a Wi-Fi code, a website, a code from another school) now says "This QR code is not registered in the system." and no longer shows what the code contains. Typed names and LRNs still get the "No enrolled student found" message.
+
+## Version 2.19
+- Students list: filter by grade level and section (admin also gets "No section"), together with the name/LRN search and Show archived. Teachers only see their own sections in the filter.
+- Schedules: when sections have different times for the same period, add one period per time (for example "Period 1 (Grade 6)" 7:30-8:30 and "Period 1 (Grade 7)" 7:30-9:00).
+- A class now counts as a clash when its time overlaps another class of the same section or teacher, not only when it uses the same period.
+- The weekly timetable is now time-based: each class sits at its real start and end time, so longer classes are taller, like a printed school timetable. Empty periods show a + to add a class.
+- A section's weekly timetable shows only the periods it uses. "Show all periods" brings back the rest.
+- Fix for PHP 8.4 "implicitly nullable" notice in reports. The `.htaccess` now lets browsers cache fonts, styles and scripts, so the menu no longer reloads the font on every click.
+
+## Version 2.18
+
+- **Student import uses Excel.** Download the .xlsx template (text-formatted columns so phone numbers and LRNs keep leading zeros, and a "How to fill in" sheet) and upload the filled .xlsx. CSV files are still accepted. Excel dates and numbers are converted. The reader works without the PHP zip extension.
+- **Sections filter:** search by name, grade level, school year, adviser, or only sections with no students.

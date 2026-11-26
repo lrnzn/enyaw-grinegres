@@ -99,7 +99,7 @@ class Report extends Model
     }
 
     /** School days (Mon-Fri, plus Saturday when it has a record) between two dates. */
-    private static function days($from, $to, array $withRecords, array $weekdays = null)
+    private static function days($from, $to, array $withRecords, ?array $weekdays = null)
     {
         $days = [];
         for ($t = strtotime($from); $t <= strtotime($to); $t = strtotime('+1 day', $t)) {

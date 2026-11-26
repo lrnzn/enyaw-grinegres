@@ -6,9 +6,26 @@ class StudentsController extends Controller
         $this->requireLogin();
         $q = trim($_GET['q'] ?? '');
         $showArchived = is_admin() && !empty($_GET['archived']);
+        $sections = Section::options();
+        $ids = array_map('strval', array_column($sections, 'id'));
+        $f = [
+            'grade'   => in_array($_GET['grade'] ?? '', Section::GRADES, true) ? $_GET['grade'] : '',
+            'section' => (string)($_GET['section'] ?? ''),            // '' = all, 'none' = no section, or a section id
+        ];
+        if ($f['section'] !== 'none' && !in_array($f['section'], $ids, true)) $f['section'] = '';
+        $all = Student::search($q, false, $showArchived, true);
+        $students = array_values(array_filter($all, function ($s) use ($f) {
+            if ($f['grade'] && ($s['grade'] ?? '') !== $f['grade']) return false;
+            if ($f['section'] === 'none') return empty($s['section_id']);
+            if ($f['section'] !== '' && (string)$s['section_id'] !== $f['section']) return false;
+            return true;
+        }));
+        $years = array_unique(array_column($sections, 'school_year'));
         $this->view('students/index', [
             'title' => 'Students', 'active' => 'students',
-            'students' => Student::search($q, false, $showArchived, true), 'q' => $q, 'showArchived' => $showArchived, 'status' => Log::statusMap(),
+            'students' => $students, 'total' => count($all), 'q' => $q, 'showArchived' => $showArchived, 'status' => Log::statusMap(),
+            'f' => $f, 'sections' => $sections, 'manyYears' => count($years) > 1,
+            'grades' => array_values(array_intersect(Section::GRADES, array_column($sections, 'grade_level'))),
         ]);
     }
 

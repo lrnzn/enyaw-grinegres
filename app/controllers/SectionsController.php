@@ -12,8 +12,27 @@ class SectionsController extends Controller
     public function index()
     {
         $this->requireAdmin();
-        $this->view('sections/index', ['title' => 'Sections', 'active' => 'sections',
-            'sections' => Section::listAll(), 'teachers' => Teacher::options(), 'grades' => self::GRADES, 'year' => self::currentYear()]);
+        $all = Section::listAll();
+        $f = [
+            'grade'   => in_array($_GET['grade'] ?? '', self::GRADES, true) ? $_GET['grade'] : '',
+            'year'    => preg_match('/^\d{4}-\d{4}$/', $_GET['year'] ?? '') ? $_GET['year'] : '',
+            'adviser' => (string)($_GET['adviser'] ?? ''),          // '' = any, 'none' = no adviser, or a teacher id
+            'q'       => trim((string)($_GET['q'] ?? '')),
+            'empty'   => !empty($_GET['empty']),                    // only sections with no students
+        ];
+        $years = array_values(array_unique(array_column($all, 'school_year')));
+        rsort($years);
+        $shown = array_values(array_filter($all, function ($s) use ($f) {
+            if ($f['grade'] && $s['grade_level'] !== $f['grade']) return false;
+            if ($f['year'] && $s['school_year'] !== $f['year']) return false;
+            if ($f['adviser'] === 'none' && $s['adviser_id']) return false;
+            if ($f['adviser'] !== '' && $f['adviser'] !== 'none' && (int)$s['adviser_id'] !== (int)$f['adviser']) return false;
+            if ($f['q'] !== '' && stripos($s['section_name'], $f['q']) === false) return false;
+            if ($f['empty'] && (int)$s['student_count'] > 0) return false;
+            return true;
+        }));
+        $this->view('sections/index', ['title' => 'Sections', 'active' => 'sections', 'sections' => $shown, 'total' => count($all), 'f' => $f, 'years' => $years,
+            'teachers' => Teacher::options(), 'grades' => self::GRADES, 'year' => self::currentYear()]);
     }
 
     public function store()

@@ -30,7 +30,7 @@
   </table></div>
   <?php endif; ?>
   <form method="post" action="<?= url('schedule/addPeriod') ?>" class="inline-form" style="margin-top:14px"><?= csrf_field() ?>
-    <label>New period <input name="name" maxlength="40" placeholder="e.g. Period 8" required></label>
+    <label>New period <input name="name" maxlength="40" placeholder="e.g. Period 1 (Grade 7)" required></label>
     <label>Starts <input type="time" name="start_time" required></label>
     <label>Ends <input type="time" name="end_time" required></label>
     <button class="btn btn-primary">Add period</button>
@@ -78,6 +78,8 @@
   <?php
     $grid = [];
     foreach ($classes as $c) $grid[(int)$c['period_id']][(int)$c['day_of_week']] = $c;
+    $showAll = !empty($_GET['all']) || !$grid;
+    $rows = $showAll ? $periods : array_values(array_filter($periods, function ($p) use ($grid) { return isset($grid[(int)$p['id']]); }));
     $secLabel = '';
     foreach ($sections as $sec) if ((int)$sec['id'] === (int)$section) $secLabel = $sec['label'] . ' (' . $sec['school_year'] . ')';
   ?>
@@ -85,30 +87,58 @@
   <?php if (!$periods): ?>
     <p class="muted">Add the periods above first. They become the rows of the timetable.</p>
   <?php else: ?>
-  <div class="tt-wrap"><table class="tt">
-    <thead><tr><th class="time">Time</th><?php foreach (Schedule::DAYS as $d => $dn): ?><th><?= e($dn) ?></th><?php endforeach; ?></tr></thead>
-    <tbody>
-    <?php foreach ($periods as $p): ?>
-      <tr>
-        <th class="time"><?= e($p['name']) ?><small><?= e($p['start_time']) ?> – <?= e($p['end_time']) ?></small></th>
-        <?php foreach (Schedule::DAYS as $d => $dn): $c = $grid[(int)$p['id']][$d] ?? null; ?>
-          <td>
-          <?php if ($c): ?>
-            <div class="slot c<?= (int)$c['subject_id'] % 8 ?>">
-              <b><?= e($c['subject']) ?></b><span><?= e($c['teacher']) ?></span>
-              <form method="post" action="<?= url('schedule/deleteClass/' . $c['id']) ?>" data-confirm="Remove <?= e($c['subject']) ?> on <?= e($dn) ?>, <?= e($p['name']) ?>?"><?= csrf_field() ?>
-                <button title="Remove this class" aria-label="Remove">&times;</button></form>
-            </div>
-          <?php else: ?>
-            <a class="empty" href="<?= url('schedule') ?>&section=<?= (int)$section ?>&day=<?= (int)$d ?>&period=<?= (int)$p['id'] ?>#add-class" title="Add a class on <?= e($dn) ?>, <?= e($p['name']) ?>">+</a>
-          <?php endif; ?>
-          </td>
+  <?php
+    $mins = function ($t) { return (int)substr($t, 0, 2) * 60 + (int)substr($t, 3, 2); };
+    $starts = $ends = [];
+    foreach ($rows as $p) { $starts[] = $mins($p['start_time']); $ends[] = $mins($p['end_time']); }
+    foreach ($classes as $c) { $starts[] = $mins($c['start_time']); $ends[] = $mins($c['end_time']); }
+    $t0 = (int)(floor(min($starts) / 30) * 30); $t1 = (int)(ceil(max($ends) / 30) * 30);
+    $PX = 1.5; $H = ($t1 - $t0) * $PX;
+    $fmt = function ($m) { return sprintf('%02d:%02d', intdiv($m, 60), $m % 60); };
+    $byDay = [];
+    foreach ($classes as $c) $byDay[(int)$c['day_of_week']][] = $c;
+  ?>
+  <div class="tg-wrap"><div class="tg">
+    <div class="tg-head"><div class="tg-time">Time</div><?php foreach (Schedule::DAYS as $d => $dn): ?><div><?= e($dn) ?></div><?php endforeach; ?></div>
+    <div class="tg-body" style="height:<?= $H ?>px">
+      <div class="tg-time tg-axis">
+        <?php for ($m = $t0; $m < $t1; $m += 30): ?><span style="top:<?= ($m - $t0) * $PX ?>px"><?= $fmt($m) ?> - <?= $fmt($m + 30) ?></span><?php endfor; ?>
+      </div>
+      <?php foreach (Schedule::DAYS as $d => $dn):
+        $busy = $byDay[$d] ?? [];
+        $free = [];
+        foreach ($rows as $p) {                                        // empty periods that do not overlap a class that day
+          $ps = $mins($p['start_time']); $pe = $mins($p['end_time']); $hit = false;
+          foreach ($busy as $c) if ($mins($c['start_time']) < $pe && $mins($c['end_time']) > $ps) { $hit = true; break; }
+          if (!$hit) $free[] = ['p' => $p, 's' => $ps, 'e' => $pe];
+        }
+        usort($free, function ($x, $y) { return $x['s'] <=> $y['s'] ?: $x['e'] <=> $y['e']; });
+        $groups = [];                                                   // overlapping empty periods become one + box
+        foreach ($free as $fr) {
+          $g = count($groups) - 1;
+          if ($g >= 0 && $fr['s'] < $groups[$g]['e']) { $groups[$g]['e'] = max($groups[$g]['e'], $fr['e']); $groups[$g]['n']++; }
+          else $groups[] = ['s' => $fr['s'], 'e' => $fr['e'], 'p' => $fr['p'], 'n' => 1];
+        }
+      ?>
+      <div class="tg-day" style="height:<?= $H ?>px">
+        <?php foreach ($busy as $c): $cs = $mins($c['start_time']); $ce = $mins($c['end_time']); ?>
+          <div class="slot c<?= (int)$c['subject_id'] % 8 ?>" style="top:<?= ($cs - $t0) * $PX ?>px;height:<?= ($ce - $cs) * $PX ?>px">
+            <b><?= e($c['subject']) ?></b><span><?= e($c['teacher']) ?></span><small><?= e($c['start_time']) ?> - <?= e($c['end_time']) ?></small>
+            <form method="post" action="<?= url('schedule/deleteClass/' . $c['id']) ?>" data-confirm="Remove <?= e($c['subject']) ?> on <?= e($dn) ?>, <?= e($c['period']) ?>?"><?= csrf_field() ?>
+              <button title="Remove this class" aria-label="Remove">&times;</button></form>
+          </div>
         <?php endforeach; ?>
-      </tr>
-    <?php endforeach; ?>
-    </tbody>
-  </table></div>
-  <p class="muted small" style="margin-top:8px">Click a <strong>+</strong> to add a class in that slot. Click &times; on a class to remove it.</p>
+        <?php foreach ($groups as $gr): $p = $gr['p']; ?>
+          <a class="empty" style="top:<?= ($gr['s'] - $t0) * $PX ?>px;height:<?= ($gr['e'] - $gr['s']) * $PX ?>px;left:0;width:100%"
+             href="<?= url('schedule') ?>&section=<?= (int)$section ?>&day=<?= (int)$d ?>&period=<?= (int)$p['id'] ?>#add-class" title="Add a class on <?= e($dn) ?>"><span class="plus">+</span><small><?= $gr['n'] > 1 ? 'Add class' : e($p['name']) ?></small></a>
+        <?php endforeach; ?>
+      </div>
+      <?php endforeach; ?>
+    </div>
+  </div></div>
+  <p class="muted small" style="margin-top:8px">Click a <strong>+</strong> to add a class in that slot. Click &times; on a class to remove it.
+    <?php if (!$showAll): ?>Showing only the periods this section uses. <a href="<?= url('schedule') ?>&section=<?= (int)$section ?>&all=1">Show all periods</a>
+    <?php elseif ($grid && count($rows) > count($grid)): ?><a href="<?= url('schedule') ?>&section=<?= (int)$section ?>">Show only this section's periods</a><?php endif; ?></p>
   <?php endif; ?>
 
   <?php if (!$periods || !$subjects || !$teachers): ?>

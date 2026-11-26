@@ -3,24 +3,38 @@
     <a href="<?= url('students') ?>" class="btn btn-ghost btn-sm"><?= icon('back', 16) ?>Students</a>
     <h1>Import students</h1>
   </div>
-  <a class="btn btn-ghost" href="<?= url('import/template') ?>"><?= icon('download', 18) ?>Download template</a>
 </div>
 
 <?php if ($preview === null): ?>
-<section class="card">
-  <h3>Upload a CSV file</h3>
-  <p class="muted">One row per student, with up to two guardians. Save your Excel sheet as <b>CSV</b>. Nothing is saved until you confirm on the next page.</p>
-  <ul class="plain-list">
-    <li><b>Required:</b> first_name, last_name, grade (Kinder, Grade 1 to Grade 10), section.</li>
-    <li><b>Optional:</b> middle_name, suffix, lrn, gender, birthdate, address, school_year (default <?= e($year) ?>).</li>
-    <li><b>Guardians:</b> g1_first_name, g1_last_name, g1_relationship, g1_email, g1_phone (and the same with g2_). The email is where arrival and pickup messages go.</li>
-    <li>Sections that do not exist yet are created. Students already registered (same LRN, or same name and birthdate) are skipped. A guardian already registered (same email) is linked, not duplicated.</li>
-  </ul>
-  <form method="post" enctype="multipart/form-data" action="<?= url('import/preview') ?>" class="row-gap wrap" style="margin-top:14px">
-    <?= csrf_field() ?>
-    <input type="file" name="file" accept=".csv,text/csv" required style="max-width:380px">
-    <button class="btn btn-primary">Check file</button>
-  </form>
+<section class="card import-steps">
+  <div class="step-row">
+    <span class="step-num">1</span>
+    <div class="step-body">
+      <h3>Download the Excel template</h3>
+      <p class="muted">It has all the columns ready. Phone numbers and LRNs keep their leading zeros.</p>
+    </div>
+    <a class="btn btn-primary btn-lg" href="<?= url('import/template') ?>"><?= icon('download', 20) ?>Download Excel template</a>
+  </div>
+  <div class="step-row">
+    <span class="step-num">2</span>
+    <div class="step-body">
+      <h3>Fill it in</h3>
+      <p class="muted">One row per student, with up to two guardians. Required: first_name, last_name, grade (Kinder, Grade 1 to Grade 10) and section. The <b>How to fill in</b> sheet explains the rest.</p>
+    </div>
+  </div>
+  <div class="step-row">
+    <span class="step-num">3</span>
+    <div class="step-body">
+      <h3>Upload it</h3>
+      <p class="muted">An Excel file (.xlsx) works. A CSV file also works. Nothing is saved until you check the preview and confirm.</p>
+      <form method="post" enctype="multipart/form-data" action="<?= url('import/preview') ?>" class="row-gap wrap" style="margin-top:10px">
+        <?= csrf_field() ?>
+        <input type="file" name="file" accept=".xlsx,.csv,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" required style="max-width:380px">
+        <button class="btn btn-primary">Check file</button>
+      </form>
+    </div>
+  </div>
+  <p class="mini muted" style="margin:6px 0 0">Sections that do not exist yet are created. Students already registered (same LRN, or same name and birthdate) are skipped. A guardian with the same email is linked, not duplicated.</p>
 </section>
 <?php else: ?>
 <section class="card glance" style="margin-bottom:18px">

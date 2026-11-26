@@ -437,3 +437,33 @@ table th{font-weight:500;color:var(--muted);font-size:12.5px}
   .main{padding:72px 16px 40px}
 }
 @media print{.menu-btn,.backdrop{display:none!important}}
+
+/* import steps */
+.import-steps{display:grid;gap:22px;padding:24px}
+.step-row{display:flex;gap:16px;align-items:flex-start}
+.step-row .step-body{flex:1}.step-row h3{margin:0 0 4px}.step-row p{margin:0}
+.step-num{flex:none;width:34px;height:34px;border-radius:50%;background:var(--leaf-50);color:var(--leaf-dark);font-weight:700;display:grid;place-items:center}
+@media (max-width:700px){.step-row{flex-wrap:wrap}.step-row .btn-lg{width:100%;justify-content:center}}
+
+/* v2.19 time-based timetable (blocks sit at their real start and end time) */
+.tg-wrap{overflow-x:auto;margin-top:14px}
+.tg{min-width:820px;border:1px solid #C9D2D8;border-radius:10px;overflow:hidden;background:#fff}
+.tg-head,.tg-body{display:grid;grid-template-columns:96px repeat(6,minmax(0,1fr))}
+.tg-head>div{background:#14452F;color:#fff;font-weight:600;padding:10px 6px;text-align:center}
+.tg-head>.tg-time{background:#14452F}
+.tg-axis{position:relative;background:#E7ECEF;border-right:1px solid #C9D2D8}
+.tg-axis span{position:absolute;left:0;right:0;height:45px;padding:4px 4px 0;text-align:center;font-size:11.5px;color:var(--muted);border-top:1px solid #C9D2D8;box-sizing:border-box}
+.tg-day{position:relative;border-left:1px solid #C9D2D8;background:repeating-linear-gradient(to bottom,transparent 0,transparent 44px,#E4E9ED 44px,#E4E9ED 45px)}
+.tg .slot{position:absolute;left:2px;right:2px;box-sizing:border-box;overflow:hidden;padding:6px 22px 6px 8px;border-radius:6px;text-align:center;font-size:13px;line-height:1.3;border:1px solid rgba(0,0,0,.08)}
+.tg .slot b{display:block;font-size:13.5px}
+.tg .slot span{display:block;color:#44555C}
+.tg .slot small{display:block;color:#5C6B73;font-size:11.5px;margin-top:2px}
+.tg .slot form{position:absolute;top:2px;right:2px;margin:0}
+.tg .slot form button{border:0;background:transparent;color:#7A8A92;font-size:18px;line-height:1;padding:2px 6px;cursor:pointer;border-radius:6px}
+.tg .slot form button:hover{background:rgba(0,0,0,.08);color:#B42318}
+.tg a.empty{position:absolute;box-sizing:border-box;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#A5B1B8;text-decoration:none;font-size:20px;line-height:1;border:1px dashed #D5DCE1;border-radius:6px;background:rgba(255,255,255,.7)}
+.tg a.empty .plus{font-size:20px;line-height:1}
+.tg a.empty small{font-size:10.5px;margin-top:2px;color:#A5B1B8}
+.tg a.empty:hover{background:var(--leaf-50);color:var(--leaf-dark);border-color:var(--leaf-dark)}
+.tg .c0{background:#DCE8F7}.tg .c1{background:#E6DDF2}.tg .c2{background:#F6DADA}.tg .c3{background:#D6F0DC}
+.tg .c4{background:#FBE6CF}.tg .c5{background:#D7EEEF}.tg .c6{background:#F4EBC4}.tg .c7{background:#EBD9E6}
